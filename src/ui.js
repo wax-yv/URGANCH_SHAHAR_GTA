@@ -28,8 +28,64 @@ export function initUI(ctx, player) {
   help.innerHTML = `Mashina yaqinida <b>E</b> (yoki klik). W/S gaz-tormoz, A/D rul, Space ruchnoy, C orqa, V kamera, L fara, N tun, T teleport, G info, H foto. Piyoda: WASD + strelka kamera.`;
   document.body.appendChild(help);
   setTimeout(() => help.remove(), 12000);
+  initPauseMenu();
   return { hud, map };
 }
+
+export const Quality = {
+  mode: localStorage.getItem('urganch_q') || 'auto',
+  sound: localStorage.getItem('urganch_s') !== 'off',
+};
+
+function initPauseMenu() {
+  const ov = document.createElement('div');
+  ov.id = 'pause';
+  ov.style.display = 'none';
+  ov.innerHTML = `
+    <div id="pcard">
+      <b>URGANCH_SHAHAR_GTA</b><span>PAUZA</span>
+      <button id="pResume">▶ Davom etish (Esc)</button>
+      <button id="pQuality">🎨 Sifat: <i id="qVal"></i></button>
+      <button id="pSound">🔊 Ovoz: <i id="sVal"></i></button>
+      <div id="phelp">WASD yurish/haydash • E mashina • P parkovka • R rescue • T teleport<br/>
+      L fara • N tun • C orqa • V kamera • G info • H foto • strelka kamera</div>
+    </div>`;
+  document.body.appendChild(ov);
+  const st = document.createElement('style');
+  st.textContent = `#pause{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(5,8,12,.72);backdrop-filter:blur(3px)}
+#pcard{display:flex;flex-direction:column;gap:10px;background:#141a22;border:1px solid #ffd75f55;border-radius:16px;padding:26px 30px;color:#fff;min-width:320px;text-align:center}
+#pcard b{color:#ffd75f;font-size:22px;letter-spacing:2px}
+#pcard span{opacity:.7;font-size:13px;letter-spacing:4px}
+#pcard button{background:#222b36;color:#fff;border:1px solid #ffffff2a;border-radius:10px;padding:10px;font-size:15px;cursor:pointer}
+#pcard button:hover{border-color:#ffd75f;background:#2a3442}
+#phelp{font-size:12px;opacity:.65;line-height:1.7}`;
+  document.head.appendChild(st);
+  const qv = () => document.getElementById('qVal').textContent =
+    { auto: 'Avto', high: 'Yuqori', med: "O'rta", low: 'Past' }[Quality.mode];
+  const sv = () => document.getElementById('sVal').textContent = Quality.sound ? 'Yoniq' : "O'chiq";
+  qv(); sv();
+  document.getElementById('pResume').onclick = () => togglePause(false);
+  document.getElementById('pQuality').onclick = () => {
+    Quality.mode = { auto: 'high', high: 'med', med: 'low', low: 'auto' }[Quality.mode];
+    localStorage.setItem('urganch_q', Quality.mode);
+    window.__applyQuality?.(); qv();
+  };
+  document.getElementById('pSound').onclick = () => {
+    Quality.sound = !Quality.sound;
+    localStorage.setItem('urganch_s', Quality.sound ? 'on' : 'off');
+    window.__applySound?.(); sv();
+  };
+}
+
+export function togglePause(force) {
+  const ov = document.getElementById('pause');
+  const show = force !== undefined ? force : ov.style.display === 'none';
+  ov.style.display = show ? 'flex' : 'none';
+  window.__paused = show;
+  if (show && document.pointerLockElement) document.exitPointerLock();
+  return show;
+}
+export function isPaused() { return !!window.__paused; }
 
 export function drawMinimap(map, player, ctx) {
   const c = map.getContext('2d');

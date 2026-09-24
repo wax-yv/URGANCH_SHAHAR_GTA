@@ -5,7 +5,7 @@ import { buildGround, buildTile, buildPOI } from './city.js';
 import { Player } from './player.js';
 import { Sim } from './sim.js';
 import { Labels } from './labels.js';
-import { initUI, drawMinimap, updateStat, nearestStreet } from './ui.js';
+import { initUI, drawMinimap, updateStat, nearestStreet, togglePause, isPaused, Quality } from './ui.js';
 import { toggleHead } from './models.js';
 import { preloadGarage } from './garage.js';
 import { buildLandmarks } from './landmarks.js';
@@ -193,6 +193,7 @@ addEventListener('mouseup', e => {
 });
 
 addEventListener('keydown', e => {
+  if (e.key === 'Escape') { togglePause(); return; }
   if (e.key.toLowerCase() === 'n') {
     const day = !scene.userData.day;
     scene.userData.day = day;
@@ -206,6 +207,19 @@ addEventListener('keydown', e => {
     }
   }
 });
+
+window.__applyQuality = () => {
+  const m = Quality.mode;
+  if (m === 'high') { renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.shadowMap.enabled = true; sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); }
+  if (m === 'med') { renderer.setPixelRatio(1); renderer.shadowMap.enabled = true; sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); }
+  if (m === 'low') { renderer.setPixelRatio(0.75); renderer.shadowMap.enabled = false; sun.castShadow = false; }
+  if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  qLevel = m === 'low' ? 2 : m === 'med' ? 1 : 0;
+};
+window.__applyQuality();
+window.__applySound = () => {
+  if (player.audio) player.audio.gain.gain.value = Quality.sound && player.mode === 'drive' ? 0.03 : 0;
+};
 
 (async () => {
   const n = await loadTiles();
@@ -248,13 +262,22 @@ addEventListener('resize', () => {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now; frames++; ft += dt;
   if (ft >= 0.5) { fps = Math.round(frames / ft); frames = 0; ft = 0; }
-  player.update(dt);
-  // to'qnashuv
-  if (player.mode === 'walk') collide(player.pos, false);
-  else if (player.car) { collide(player.car.position, true); player.pos.set(player.car.position.x, 1.7, player.car.position.z); }
-  sim?.update(dt);
+  if (!isPaused()) {
+    if (window.__wasPaused && player.audio) {
+      window.__wasPaused = false;
+      player.audio.gain.gain.value = Quality.sound && player.mode === 'drive' ? 0.03 : 0;
+    }
+    player.update(dt);
+    // to'qnashuv
+    if (player.mode === 'walk') collide(player.pos, false);
+    else if (player.car) { collide(player.car.position, true); player.pos.set(player.car.position.x, 1.7, player.car.position.z); }
+    sim?.update(dt);
+  } else if (!window.__wasPaused) {
+    window.__wasPaused = true;
+    if (player.audio) player.audio.gain.gain.value = 0;
+  }
   labels.update(player.pos);
-  autoQuality(dt);
+  if (Quality.mode === 'auto') autoQuality(dt);
   streetT += dt;
   saveT += dt;
   if (saveT > 5) {
