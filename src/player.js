@@ -13,6 +13,7 @@ export class Player {
     this.keys = {};
     this.touch = { f: 0, s: 0 }; // joystick: f oldinga, s yonga
     this.parked = [];
+    this.cars = [];
     this.named = [];
     this.ni = 0;
     this.camMode = 0; // 0 chase, 1 kapot, 2 tepa
