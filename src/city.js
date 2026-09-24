@@ -220,14 +220,19 @@ export function buildTile(group, tile, ctx) {
     const td = new THREE.Object3D();
     const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.15, 0.2, 1.6, 6),
       new THREE.MeshLambertMaterial({ color: 0x6b4a2b }), treePos.length);
-    const crown = new THREE.InstancedMesh(new THREE.SphereGeometry(1.2, 8, 8),
-      new THREE.MeshLambertMaterial({ color: 0x2f7d3a }), treePos.length);
-    treePos.forEach(([x, z], i) => {
-      td.position.set(x, 0.8, z); td.updateMatrix(); trunk.setMatrixAt(i, td.matrix);
-      td.position.set(x, 2.4, z); td.updateMatrix(); crown.setMatrixAt(i, td.matrix);
-    });
-    crown.castShadow = true;
-    group.add(trunk, crown);
+    const round = [], cone = [];
+    treePos.forEach(([x, z], i) => ((x * 7 + z * 13) % 3 < 1 ? cone : round).push([x, z]));
+    const mkCrown = (list, geo, color) => {
+      if (!list.length) return;
+      const m = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color }), list.length);
+      list.forEach(([x, z], i) => { td.position.set(x, 2.4, z); td.updateMatrix(); m.setMatrixAt(i, td.matrix); });
+      m.castShadow = true;
+      group.add(m);
+    };
+    mkCrown(round, new THREE.SphereGeometry(1.2, 8, 8), 0x2f7d3a);
+    mkCrown(cone, new THREE.ConeGeometry(1.1, 2.6, 8), 0x276a34);
+    treePos.forEach(([x, z], i) => { td.position.set(x, 0.8, z); td.updateMatrix(); trunk.setMatrixAt(i, td.matrix); });
+    group.add(trunk);
   }
   // ko'cha chiroqlari (tun uchun emissiv)
   const lampHeads = [], lampPoles = [];
