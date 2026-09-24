@@ -144,10 +144,23 @@ export function buildTile(group, tile, ctx) {
     if (['primary', 'secondary', 'tertiary'].includes(hw) && pts.length > 3)
       routes.push(pts.map(([x, z]) => new THREE.Vector3(x, 0, z)));
     if (['primary', 'secondary'].includes(hw) && pts.length > 4) {
-      const mid = pts[Math.floor(pts.length / 2)];
+      const mi = Math.floor(pts.length / 2);
+      const mid = pts[mi];
+      const nxt = pts[Math.min(mi + 1, pts.length - 1)];
+      const ang = Math.atan2(nxt[0] - mid[0], nxt[1] - mid[1]);
       const li = makeTrafficLight();
       li.position.set(mid[0] + wd / 2 + 1.5, 0, mid[1]);
       group.add(li); ctx.lights.push(li); setLight(li, 'green');
+      // zebra — piyodalar o'tish joyi
+      const zg = new THREE.Group();
+      const zmat = new THREE.MeshBasicMaterial({ color: 0xe8e8e8 });
+      for (let s = -3; s <= 3; s++) {
+        const bar = new THREE.Mesh(new THREE.PlaneGeometry(0.6, wd - 1), zmat);
+        bar.rotation.x = -Math.PI / 2; bar.rotation.z = -ang;
+        bar.position.set(mid[0] + Math.cos(ang) * s * 1.1, 0.075, mid[1] - Math.sin(ang) * s * 1.1);
+        zg.add(bar);
+      }
+      group.add(zg);
     }
   }
   ctx.routes.push(...routes);
