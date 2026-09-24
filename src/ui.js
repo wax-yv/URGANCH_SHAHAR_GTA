@@ -4,9 +4,15 @@ export function initUI(ctx, player) {
   hud.id = 'hud';
   hud.innerHTML = `
     <b>URGANCH_SHAHAR_GTA</b> <span id="mode">PIYODA</span> <span id="comp">🧭 N</span> |
-    WASD yurish/haydash, E — mashinaga o'tish/tushish, P — parkovka, L — fara, 1/2 — kamera |
+    WASD yurish/haydash, E — mashinaga o'tish/tushish, P — parkovka, L — fara, N — tun, G — info |
     <span id="stat"></span><br/><span id="bname"></span>`;
   document.body.prepend(hud);
+  addEventListener('keydown', e => {
+    if (e.key.toLowerCase() === 'g' && window.__cityStat) {
+      const el = document.getElementById('bname');
+      if (el) { el.textContent = window.__cityStat; el.dataset.lock = Date.now(); }
+    }
+  });
   addEventListener('keydown', e => {
     if (e.key.toLowerCase() === 'h') {
       document.querySelectorAll('#hud,#minimap,#help,#joy,#tbtn').forEach(el => {
@@ -19,7 +25,7 @@ export function initUI(ctx, player) {
   document.body.appendChild(map);
   const help = document.createElement('div');
   help.id = 'help';
-  help.innerHTML = `Mashina yaqinida <b>E</b> (yoki klik). W/S gaz-tormoz, A/D rul, Space ruchnoy, C orqa, V kamera, L fara, N tun, T teleport, H foto. Piyoda: WASD + strelka kamera.`;
+  help.innerHTML = `Mashina yaqinida <b>E</b> (yoki klik). W/S gaz-tormoz, A/D rul, Space ruchnoy, C orqa, V kamera, L fara, N tun, T teleport, G info, H foto. Piyoda: WASD + strelka kamera.`;
   document.body.appendChild(help);
   setTimeout(() => help.remove(), 12000);
   return { hud, map };

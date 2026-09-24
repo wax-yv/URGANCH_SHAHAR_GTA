@@ -222,6 +222,7 @@ addEventListener('keydown', e => {
   buildSolidGrid();
   sim = new Sim(scene, ctx, player);
   labels.rebuild(ctx.named);
+  window.__cityStat = `🏙 ${tileGroups.length}/16 tile | ${ctx.solids.length} bino | ${ctx.routes.length} route | ${ctx.named.length} nom | ${ctx.lights.length} svetofor`;
   document.title = `READY named=${ctx.named.length} routes=${ctx.routes.length} lights=${ctx.lights.length}`;
   const el = document.getElementById('bname');
   if (el) el.textContent = `Yuklandi: ${ctx.named.length} nomli bino, ${ctx.routes.length} trafik route | E — mashinaga o'tish`;
