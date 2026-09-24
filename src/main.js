@@ -36,8 +36,10 @@ const tileGroups = [];
 const labels = new Labels(scene);
 
 async function loadTiles() {
+  const free = new URLSearchParams(location.search).has('free');
   const ov = document.createElement('div');
   ov.id = 'load';
+  if (free) ov.style.display = 'none';
   ov.innerHTML = '<b>URGANCH_SHAHAR_GTA</b><br/><span id="loadmsg">Xarita yuklanmoqda...</span>';
   document.body.appendChild(ov);
   let ok = 0;
@@ -163,6 +165,7 @@ addEventListener('mouseup', e => {
   player.spawnCars(scene, carSpots());
   sim = new Sim(scene, ctx, player);
   labels.rebuild(ctx.named);
+  document.title = `READY named=${ctx.named.length} routes=${ctx.routes.length} lights=${ctx.lights.length}`;
   const el = document.getElementById('bname');
   if (el) el.textContent = `Yuklandi: ${ctx.named.length} nomli bino, ${ctx.routes.length} trafik route | E — mashinaga o'tish`;
 })();

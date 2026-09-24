@@ -12,7 +12,8 @@ function textSprite(text) {
   cv.width = w; cv.height = 64;
   const c2 = cv.getContext('2d');
   c2.fillStyle = 'rgba(8,12,18,0.78)';
-  c2.beginPath(); c2.roundRect(0, 6, w, 52, 12); c2.fill();
+  if (c2.roundRect) { c2.beginPath(); c2.roundRect(0, 6, w, 52, 12); c2.fill(); }
+  else c2.fillRect(0, 6, w, 52);
   c2.font = `bold ${fs}px system-ui`;
   c2.fillStyle = '#ffd75f'; c2.textBaseline = 'middle';
   c2.fillText(text, 15, 34);
