@@ -3,8 +3,9 @@ import * as THREE from 'three';
 // GM low-poly avtomobillar — o'xshash shakl, demo uchun litsenziyasiz model
 export function makeCar(type) {
   const g = new THREE.Group();
-  const { len: L, wid: Wd, h: H, color } = type;
-  const bodyMat = new THREE.MeshLambertMaterial({ color });
+  const { len: L, wid: Wd, h: H } = type;
+  const col = new THREE.Color(type.color).offsetHSL(0, 0, (Math.random() - 0.5) * 0.08);
+  const bodyMat = new THREE.MeshLambertMaterial({ color: col });
   const glassMat = new THREE.MeshLambertMaterial({ color: 0x1a2530 });
   const body = new THREE.Mesh(new THREE.BoxGeometry(Wd, H * 0.55, L), bodyMat);
   body.position.y = 0.55 + H * 0.28;
