@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CAR_TYPES } from './config.js';
-import { makeCar } from './models.js';
+import { makeCar, setBrake, toggleHead } from './models.js';
 
 export class Player {
   constructor(scene, camera) {
@@ -92,6 +92,7 @@ background:rgba(255,215,95,.85);touch-action:none}
     const k = this.keys, t = this.touch;
     if (k['e']) { k['e'] = false; this.mode === 'walk' ? this.tryEnter() : this.exitCar(); }
     if (k['p'] && this.mode === 'drive') { k['p'] = false; this.parkCar(); }
+    if (k['l'] && this.mode === 'drive' && this.car) { k['l'] = false; toggleHead(this.car); }
     if (this.mode === 'walk') {
       const sp = 7 * dt;
       const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
@@ -109,6 +110,7 @@ background:rgba(255,215,95,.85);touch-action:none}
       if (gas) this.speed = Math.min(this.speed + 18 * dt * gas, maxV);
       else if (brk) this.speed = Math.max(this.speed - 22 * dt * brk, -8);
       else this.speed *= (1 - 1.6 * dt);
+      setBrake(this.car, !!brk);
       const steer = ((k['a'] ? 1 : 0) - (k['d'] ? 1 : 0)) - t.s;
       this.car.rotation.y += steer * 1.6 * dt * Math.sign(this.speed || 1);
       const fw = new THREE.Vector3(0, 0, -1).applyQuaternion(this.car.quaternion);

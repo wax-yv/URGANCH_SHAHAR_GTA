@@ -31,7 +31,32 @@ export function makeCar(type) {
     }
   }
   g.userData = { type, wheels, speed: 0 };
+  // stop-chiroq + fara
+  const brakeMat = new THREE.MeshBasicMaterial({ color: 0x550000 });
+  const bg = new THREE.BoxGeometry(0.25, 0.18, 0.1);
+  const b1 = new THREE.Mesh(bg, brakeMat); b1.position.set(-Wd / 2 + 0.3, 0.9, L / 2 + 0.01);
+  const b2 = new THREE.Mesh(bg, brakeMat); b2.position.set(Wd / 2 - 0.3, 0.9, L / 2 + 0.01);
+  const headMat = new THREE.MeshBasicMaterial({ color: 0x444433 });
+  const hg = new THREE.BoxGeometry(0.3, 0.2, 0.1);
+  const h1 = new THREE.Mesh(hg, headMat); h1.position.set(-Wd / 2 + 0.3, 0.85, -L / 2 - 0.01);
+  const h2 = new THREE.Mesh(hg, headMat); h2.position.set(Wd / 2 - 0.3, 0.85, -L / 2 - 0.01);
+  const beam = new THREE.SpotLight(0xfff2cc, 0, 60, 0.5, 0.4);
+  beam.position.set(0, 1.2, -L / 2);
+  const tgt = new THREE.Object3D(); tgt.position.set(0, 0, -L / 2 - 20);
+  g.add(tgt); beam.target = tgt; g.add(beam);
+  g.add(b1, b2, h1, h2);
+  g.userData.lights = { brakeMat, headMat, beam, on: false };
   return g;
+}
+
+export function setBrake(car, on) {
+  car.userData.lights?.brakeMat.color.set(on ? 0xff2222 : 0x550000);
+}
+export function toggleHead(car) {
+  const L = car.userData.lights; if (!L) return;
+  L.on = !L.on;
+  L.beam.intensity = L.on ? 60 : 0;
+  L.headMat.color.set(L.on ? 0xfff6c8 : 0x444433);
 }
 
 export function makeTrafficLight() {
