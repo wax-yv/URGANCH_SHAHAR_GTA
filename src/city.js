@@ -256,17 +256,22 @@ export function buildPOI(group, poi, ctx) {
     ctx.named.push({ x, z, h: 3, tags: { name: '🅿 ' + (f.tags?.name || 'Parking'), amenity: 'parking' } });
   }
   const pin = (list, color) => {
+    const pts = [];
     for (const e of (list || []).slice(0, 600)) {
       const c = e.center || (e.lat != null ? e : null);
       if (!c || c.lat == null) continue;
       const [x, z] = toXZ(c.lat, c.lon);
-      const m = new THREE.Mesh(new THREE.BoxGeometry(8, 10, 8),
-        new THREE.MeshLambertMaterial({ color }));
-      m.position.set(x, 0, z); m.castShadow = true;
-      group.add(m);
+      pts.push([x, z]);
       ctx.solids.push({ x, z, r: 6 });
       if (e.tags?.name) ctx.named.push({ x, z, h: 10, tags: e.tags });
     }
+    if (!pts.length) return;
+    const im = new THREE.InstancedMesh(new THREE.BoxGeometry(8, 10, 8),
+      new THREE.MeshLambertMaterial({ color }), pts.length);
+    const d = new THREE.Object3D();
+    pts.forEach(([x, z], i) => { d.position.set(x, 5, z); d.updateMatrix(); im.setMatrixAt(i, d.matrix); });
+    im.castShadow = true;
+    group.add(im);
   };
   pin(poi.school, 0xe07b39); pin(poi.bank, 0x3a7bd5);
   pin(poi.shop, 0x9b59b6); pin(poi.food, 0xe74c3c); pin(poi.hospital, 0xecf0f1);
