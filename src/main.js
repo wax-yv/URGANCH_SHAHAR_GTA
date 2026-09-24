@@ -179,6 +179,7 @@ addEventListener('mouseup', e => {
   if (ov) ov.remove();
   player.spawnCars(scene, carSpots());
   player.named = ctx.named;
+  player.routes = ctx.routes;
   buildSolidGrid();
   sim = new Sim(scene, ctx, player);
   labels.rebuild(ctx.named);

@@ -111,12 +111,28 @@ background:rgba(255,215,95,.85);touch-action:none}
     const el = document.getElementById('bname');
     if (el) { el.textContent = `📍 ${n.tags.name || ''}`; el.dataset.lock = Date.now(); }
   }
+  rescue() {
+    // qotib qolgan mashinani eng yaqin yolga qaytarish
+    if (!this.routes?.length || !this.car) return;
+    let best = null, bd = 1e18;
+    for (const rt of this.routes) {
+      for (const p of rt) {
+        const d = (p.x - this.car.position.x) ** 2 + (p.z - this.car.position.z) ** 2;
+        if (d < bd) { bd = d; best = p; }
+      }
+    }
+    if (best) {
+      this.car.position.set(best.x, 0, best.z);
+      this.speed = 0;
+    }
+  }
   update(dt) {
     const k = this.keys, t = this.touch;
     if (k['e']) { k['e'] = false; this.mode === 'walk' ? this.tryEnter() : this.exitCar(); }
     if (k['p'] && this.mode === 'drive') { k['p'] = false; this.parkCar(); }
     if (k['l'] && this.mode === 'drive' && this.car) { k['l'] = false; toggleHead(this.car); }
     if (k['t']) { k['t'] = false; this.teleport(); }
+    if (k['r'] && this.mode === 'drive' && this.car) { k['r'] = false; this.rescue(); }
     if (this.mode === 'walk') {
       if (k['arrowleft']) this.yaw += 2.2 * dt;
       if (k['arrowright']) this.yaw -= 2.2 * dt;
