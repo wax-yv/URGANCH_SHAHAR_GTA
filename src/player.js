@@ -156,7 +156,7 @@ background:rgba(255,215,95,.85);touch-action:none}
       else this.speed *= (1 - 1.6 * dt);
       if (k[' ']) this.speed *= (1 - 4 * dt); // ruchnoy tormoz
       setBrake(this.car, !!brk || !!k[' ']);
-      const steer = ((k['a'] ? 1 : 0) - (k['d'] ? 1 : 0)) - t.s;
+      const steer = (((k['a'] ? 1 : 0) - (k['d'] ? 1 : 0)) - t.s) / (1 + Math.abs(this.speed) * 0.06);
       this.car.rotation.y += steer * 1.6 * dt * Math.sign(this.speed || 1);
       const fw = new THREE.Vector3(0, 0, -1).applyQuaternion(this.car.quaternion);
       this.car.position.addScaledVector(fw, this.speed * dt);
