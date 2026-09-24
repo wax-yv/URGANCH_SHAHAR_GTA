@@ -8,7 +8,13 @@ import { Labels } from './labels.js';
 import { initUI, drawMinimap, updateStat, nearestStreet } from './ui.js';
 import { toggleHead } from './models.js';
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+} catch (e) {
+  document.body.innerHTML = '<div style="color:#fff;background:#10151c;height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui">WebGL topilmadi — brauzerda hardware acceleration ni yoqing.</div>';
+  throw e;
+}
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.shadowMap.enabled = true;
