@@ -8,6 +8,7 @@ import { Labels } from './labels.js';
 import { initUI, drawMinimap, updateStat, nearestStreet } from './ui.js';
 import { toggleHead } from './models.js';
 import { preloadGarage } from './garage.js';
+import { buildLandmarks } from './landmarks.js';
 
 let renderer;
 try {
@@ -218,6 +219,7 @@ addEventListener('keydown', e => {
   player.spawnCars(scene, carSpots());
   player.named = ctx.named;
   player.routes = ctx.routes;
+  buildLandmarks(scene, ctx);
   try {
     const sv = JSON.parse(localStorage.getItem('urganch_pos') || 'null');
     if (sv && Math.abs(sv.x) < 4000 && Math.abs(sv.z) < 4000) {

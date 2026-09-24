@@ -2,6 +2,14 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { toXZ, bHeight, roadWidth, citySize } from './geo.js';
 import { makeTrafficLight, setLight } from './models.js';
+import { VARIANTS, TINTS, ROOFS, getFacade } from './facades.js';
+
+const hash2 = (x, z) => {
+  let h = Math.floor(x * 13.7 + z * 71.3 + 911) | 0;
+  h = Math.imul(h ^ (h >>> 16), 2246822519);
+  h = Math.imul(h ^ (h >>> 13), 3266489917);
+  return (h ^= h >>> 16) >>> 0;
+};
 
 export function buildGround(scene) {
   const { w, h } = citySize();
@@ -36,8 +44,9 @@ function footprintMesh(ptsXZ, h, color) {
 export function buildTile(group, tile, ctx) {
   const { buildings = [], roads = [], water = [] } = tile;
   const box = new THREE.BoxGeometry(1, 1, 1); box.translate(0, 0.5, 0);
-  const plain = [], named = [], edu = [], civic = [];
+  const buckets = new Map(); // variant -> rec[]
   const dummy = new THREE.Object3D();
+  const tmpC = new THREE.Color();
   let footprints = 0;
 
   const catOf = (tags) => {
@@ -75,31 +84,43 @@ export function buildTile(group, tile, ctx) {
         continue;
       }
     }
-    // 2) markaz nuqta — 1:1 pozitsiya, standart o'lcham
+    // 2) markaz nuqta — 1:1 pozitsiya, fasad varianti
     const c = b.center || (b.lat != null ? { lat: b.lat, lon: b.lon } : null);
     if (!c || c.lat == null) continue;
     const [x, z] = toXZ(c.lat, c.lon);
     const rec = { x, z, h, tags };
-    if (tags.name) { named.push(rec); }
-    else if (catOf(tags) === 'edu') edu.push(rec);
-    else if (catOf(tags) === 'civic') civic.push(rec);
-    else plain.push(rec);
+    const v = hash2(x, z) % VARIANTS;
+    const civic = catOf(tags) === 'civic' || catOf(tags) === 'edu';
+    const key = v + (civic ? 1000 : 0);
+    if (!buckets.has(key)) buckets.set(key, { v, civic, list: [] });
+    buckets.get(key).list.push(rec);
     ctx.solids.push({ x, z, r: 7 });
     if (tags.name) ctx.named.push(rec);
   }
-  const mkSet = (list, color) => {
-    if (!list.length) return;
-    const m = new THREE.InstancedMesh(box, new THREE.MeshLambertMaterial({ color }), list.length);
+  // fasad variantlari: devor (tekstura+tint) + tom (instanceColor) — 512 kombinatsiya
+  const roofGeo = new THREE.BoxGeometry(1, 1, 1);
+  for (const { v, civic, list } of buckets.values()) {
+    const tex = new THREE.CanvasTexture(getFacade(v, civic));
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const wm = new THREE.InstancedMesh(box,
+      new THREE.MeshLambertMaterial({ map: tex }), list.length);
+    const rm = new THREE.InstancedMesh(roofGeo,
+      new THREE.MeshLambertMaterial({ color: 0xffffff }), list.length);
     list.forEach((r, i) => {
       dummy.position.set(r.x, 0, r.z);
       dummy.scale.set(11, r.h, 11);
-      dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
+      dummy.updateMatrix(); wm.setMatrixAt(i, dummy.matrix);
+      wm.setColorAt(i, tmpC.set(TINTS[hash2(r.z, r.x) % TINTS.length]));
+      dummy.position.set(r.x, r.h, r.z);
+      dummy.scale.set(11.4, 0.5, 11.4);
+      dummy.updateMatrix(); rm.setMatrixAt(i, dummy.matrix);
+      rm.setColorAt(i, tmpC.set(ROOFS[hash2(r.x * 3, r.z * 7) % ROOFS.length]));
     });
-    m.castShadow = m.receiveShadow = true;
-    group.add(m);
-  };
-  mkSet(plain, 0xcfc4ae); mkSet(named, 0xd98f5f);
-  mkSet(edu, 0xe0a458); mkSet(civic, 0x9fc3d8);
+    wm.instanceColor.needsUpdate = true;
+    rm.instanceColor.needsUpdate = true;
+    wm.castShadow = wm.receiveShadow = true;
+    group.add(wm, rm);
+  }
 
   const routes = [];
   const streets = [];
