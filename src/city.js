@@ -36,9 +36,18 @@ function footprintMesh(ptsXZ, h, color) {
 export function buildTile(group, tile, ctx) {
   const { buildings = [], roads = [], water = [] } = tile;
   const box = new THREE.BoxGeometry(1, 1, 1); box.translate(0, 0.5, 0);
-  const plain = [], named = [];
+  const plain = [], named = [], edu = [], civic = [];
   const dummy = new THREE.Object3D();
   let footprints = 0;
+
+  const catOf = (tags) => {
+    const a = (tags.amenity || '').toLowerCase();
+    const b = (tags.building || '').toLowerCase();
+    const s = (tags.shop || '').toLowerCase();
+    if (a === 'school' || a === 'kindergarten' || a === 'university' || b === 'school') return 'edu';
+    if (a || s || b === 'commercial' || b === 'retail' || b === 'office' || b === 'hotel') return 'civic';
+    return 'plain';
+  };
 
   for (const b of buildings) {
     const tags = b.tags || {};
@@ -71,7 +80,10 @@ export function buildTile(group, tile, ctx) {
     if (!c || c.lat == null) continue;
     const [x, z] = toXZ(c.lat, c.lon);
     const rec = { x, z, h, tags };
-    (tags.name ? named : plain).push(rec);
+    if (tags.name) { named.push(rec); }
+    else if (catOf(tags) === 'edu') edu.push(rec);
+    else if (catOf(tags) === 'civic') civic.push(rec);
+    else plain.push(rec);
     ctx.solids.push({ x, z, r: 7 });
     if (tags.name) ctx.named.push(rec);
   }
@@ -87,6 +99,7 @@ export function buildTile(group, tile, ctx) {
     group.add(m);
   };
   mkSet(plain, 0xcfc4ae); mkSet(named, 0xd98f5f);
+  mkSet(edu, 0xe0a458); mkSet(civic, 0x9fc3d8);
 
   const routes = [];
   const streets = [];
