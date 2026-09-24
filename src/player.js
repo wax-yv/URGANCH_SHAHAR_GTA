@@ -107,6 +107,8 @@ background:rgba(255,215,95,.85);touch-action:none}
     if (k['p'] && this.mode === 'drive') { k['p'] = false; this.parkCar(); }
     if (k['l'] && this.mode === 'drive' && this.car) { k['l'] = false; toggleHead(this.car); }
     if (this.mode === 'walk') {
+      if (k['arrowleft']) this.yaw += 2.2 * dt;
+      if (k['arrowright']) this.yaw -= 2.2 * dt;
       const sp = 7 * dt;
       const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
       const r = new THREE.Vector3(-f.z, 0, f.x);
