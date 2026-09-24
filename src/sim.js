@@ -60,6 +60,19 @@ export class Sim {
     for (const b of this.bots) {
       if (b.wait > 0) { b.wait -= dt; setBrake(b.mesh, true); continue; }
       setBrake(b.mesh, false);
+      // o'yinchi bilan to'qnashuv — arcade bump
+      const pc = this.player?.car;
+      if (pc) {
+        const dx = pc.position.x - b.mesh.position.x, dz = pc.position.z - b.mesh.position.z;
+        const d2 = dx * dx + dz * dz;
+        if (d2 < 3.5 * 3.5 && d2 > 0.01) {
+          const d = Math.sqrt(d2);
+          pc.position.x = b.mesh.position.x + (dx / d) * 3.5;
+          pc.position.z = b.mesh.position.z + (dz / d) * 3.5;
+          this.player.speed *= 0.6;
+          b.wait = 0.6;
+        }
+      }
       const next = b.route[(b.i + 1) % b.route.length];
       if ((this._st === 'red' || this._st === 'yellow') && this.nearRedLight(next)) {
         b.wait = 0.4; continue; // svetoforda to'xtash
