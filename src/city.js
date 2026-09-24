@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { toXZ, bHeight, roadWidth, citySize } from './geo.js';
 import { makeTrafficLight, makeTree, setLight } from './models.js';
 
@@ -17,49 +18,6 @@ export function buildGround(scene) {
   );
   city.rotation.x = -Math.PI / 2; city.position.y = 0.02; city.receiveShadow = true;
   scene.add(city);
-}
-
-function strip(points, width, color, y) {
-  const g = new THREE.Group();
-  const mat = new THREE.MeshLambertMaterial({ color });
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i], b = points[i + 1];
-    const dx = b[0] - a[0], dz = b[1] - a[1];
-    const len = Math.hypot(dx, dz);
-    if (len < 0.5) continue;
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(width, len), mat);
-    m.rotation.x = -Math.PI / 2;
-    m.rotation.z = -Math.atan2(dx, dz);
-    m.position.set((a[0] + b[0]) / 2, y, (a[1] + b[1]) / 2);
-    m.receiveShadow = true;
-    g.add(m);
-  }
-  return g;
-}
-
-// markaziy uzuq chiziq (polosa)
-function dashes(points, y = 0.09) {
-  const g = new THREE.Group();
-  const mat = new THREE.MeshBasicMaterial({ color: 0xf2f2f2 });
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i], b = points[i + 1];
-    const dx = b[0] - a[0], dz = b[1] - a[1];
-    const len = Math.hypot(dx, dz);
-    if (len < 6) continue;
-    const n = Math.floor(len / 6);
-    for (let k = 0; k < n; k += 2) {
-      const t0 = k / n, t1 = Math.min((k + 1) / n, 1);
-      const mx = (a[0] + (b[0] - a[0]) * (t0 + t1) / 2);
-      const mz = (a[1] + (b[1] - a[1]) * (t0 + t1) / 2);
-      const seg = len / n;
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(0.25, seg * 0.9), mat);
-      m.rotation.x = -Math.PI / 2;
-      m.rotation.z = -Math.atan2(dx, dz);
-      m.position.set(mx, y, mz);
-      g.add(m);
-    }
-  }
-  return g;
 }
 
 // footprint polygon -> ekstruziya (ShapeGeometry + yon devorlarsiz box-approx)
@@ -132,14 +90,44 @@ export function buildTile(group, tile, ctx) {
 
   const routes = [];
   const streets = [];
+  // bitta tile — 3 draw call: tratuar + asfalt + chiziq
+  const sideGeos = [], asfGeos = [], dashGeos = [];
+  const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpE = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1);
+  const pushStrip = (arr, pts, wd, y) => {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const dx = b[0] - a[0], dz = b[1] - a[1];
+      const len = Math.hypot(dx, dz);
+      if (len < 0.5) continue;
+      const g = new THREE.PlaneGeometry(wd, len);
+      tmpE.set(-Math.PI / 2, 0, -Math.atan2(dx, dz)); tmpQ.setFromEuler(tmpE);
+      tmpM.compose(new THREE.Vector3((a[0] + b[0]) / 2, y, (a[1] + b[1]) / 2), tmpQ, one);
+      g.applyMatrix4(tmpM); arr.push(g);
+    }
+  };
   for (const w of roads) {
     if (!w.geometry || w.geometry.length < 2) continue;
     const pts = w.geometry.map(p => toXZ(p.lat, p.lon));
     const wd = roadWidth(w.tags);
     const hw = (w.tags || {}).highway || '';
-    group.add(strip(pts, wd + 3, 0xb9b3a6, 0.04)); // tratuar
-    group.add(strip(pts, wd, 0x3c3f45, 0.06));      // asfalt
-    if (wd >= 7) group.add(dashes(pts));            // polosa chizig'i
+    pushStrip(sideGeos, pts, wd + 3, 0.04);
+    pushStrip(asfGeos, pts, wd, 0.06);
+    if (wd >= 7) {
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1];
+        const dx = b[0] - a[0], dz = b[1] - a[1];
+        const len = Math.hypot(dx, dz);
+        if (len < 6) continue;
+        const n = Math.floor(len / 6);
+        tmpE.set(-Math.PI / 2, 0, -Math.atan2(dx, dz)); tmpQ.setFromEuler(tmpE);
+        for (let k = 0; k < n; k += 2) {
+          const t0 = k / n, t1 = Math.min((k + 1) / n, 1);
+          const g = new THREE.PlaneGeometry(0.25, (len / n) * 0.9);
+          tmpM.compose(new THREE.Vector3(a[0] + (b[0] - a[0]) * (t0 + t1) / 2, 0.09, a[1] + (b[1] - a[1]) * (t0 + t1) / 2), tmpQ, one);
+          g.applyMatrix4(tmpM); dashGeos.push(g);
+        }
+      }
+    }
     if ((w.tags || {}).name) streets.push({ name: w.tags.name, pts });
     if (['primary', 'secondary', 'tertiary'].includes(hw) && pts.length > 3)
       routes.push(pts.map(([x, z]) => new THREE.Vector3(x, 0, z)));
@@ -165,11 +153,22 @@ export function buildTile(group, tile, ctx) {
   }
   ctx.routes.push(...routes);
   ctx.streets.push(...streets);
+  const addMerged = (arr, color, basic = false) => {
+    if (!arr.length) return;
+    const m = new THREE.Mesh(mergeGeometries(arr),
+      basic ? new THREE.MeshBasicMaterial({ color }) : new THREE.MeshLambertMaterial({ color }));
+    m.receiveShadow = true;
+    group.add(m);
+  };
+  addMerged(sideGeos, 0xb9b3a6);
+  addMerged(asfGeos, 0x3c3f45);
+  addMerged(dashGeos, 0xf2f2f2, true);
 
+  const watGeos = [];
   for (const f of water) {
     const g = f.geometry;
     if (f.type === 'way' && g && g.length > 1) {
-      group.add(strip(g.map(p => toXZ(p.lat, p.lon)), 10, 0x3f8fbf, 0.08));
+      pushStrip(watGeos, g.map(p => toXZ(p.lat, p.lon)), 10, 0.08);
     } else {
       const c = f.center || (g && g[0]); if (!c) continue;
       const [x, z] = toXZ(c.lat, c.lon);
@@ -179,6 +178,7 @@ export function buildTile(group, tile, ctx) {
       group.add(m);
     }
   }
+  addMerged(watGeos, 0x3f8fbf);
   for (let i = 0; i < Math.min(routes.length * 4, 60); i++) {
     const rt = routes[i % Math.max(routes.length, 1)]; if (!rt) break;
     const p = rt[Math.floor(Math.random() * rt.length)];
