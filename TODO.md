@@ -2,7 +2,7 @@
 
 Chegara: 41.5225,60.5848,41.5879,60.6758 (7.2x7.6)
 Maqsad: 60fps, desktop, real soya 150m, 4x4 tile streaming
-Holat: 16/16 tile jonli (~19.8k bino, 2.7k yo'l, 208 nomli) — POI qatlami navbatda
+Holat: 16/16 tile jonli (~19.8k bino, 2.7k yo'l, 208 nomli) + POI 1195 nuqta — TAYYOR
 
 - [x] 0.1 tools/fetch_osm.py — building/highway/water/parking fetch
 - [x] 0.2 data/tiles 4x4 split + markaz tile test
@@ -12,4 +12,4 @@ Holat: 16/16 tile jonli (~19.8k bino, 2.7k yo'l, 208 nomli) — POI qatlami navb
 - [x] 2.1 piyoda WASD + mashina arcade + E o'tirish + GM low-poly (Spark,Cobalt,Gentra,Matiz,Nexia2/3,Damas,bus,tramvay) + fara/stop + ruchnoy + orqa kamera + dvigatel ovozi + touch joystick
 - [x] 3.1 NPC 40 (tratuarda) + bot 15 + svetofor sikl + zebra + bot-player avoidance
 - [x] 4.1 optimizatsiya: merged roads, tile streaming 900m, avto-sifat scaler, to'qnashuv
-- [ ] 5.0 16/16 tile + POI (parking/maktab/dokon) + Vercel test (foydalanuvchi tomonida)
+- [x] 5.0 16/16 tile + POI (parking/maktab/bank/dokon/ovqat/tibbiyot) — Vercel test foydalanuvchi tomonida
