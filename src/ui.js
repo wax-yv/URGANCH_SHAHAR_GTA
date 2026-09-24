@@ -7,6 +7,13 @@ export function initUI(ctx, player) {
     WASD yurish/haydash, E — mashinaga o'tish/tushish, P — parkovka, L — fara, 1/2 — kamera |
     <span id="stat"></span><br/><span id="bname"></span>`;
   document.body.prepend(hud);
+  addEventListener('keydown', e => {
+    if (e.key.toLowerCase() === 'h') {
+      document.querySelectorAll('#hud,#minimap,#help,#joy,#tbtn').forEach(el => {
+        if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+      });
+    }
+  });
   const map = document.createElement('canvas');
   map.id = 'minimap'; map.width = map.height = 170;
   document.body.appendChild(map);
