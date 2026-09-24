@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TILE } from './config.js';
+import { TILE, BBOX, CENTER } from './config.js';
 import { toXZ } from './geo.js';
 import { buildGround, buildTile, buildPOI } from './city.js';
 import { Player } from './player.js';
@@ -49,8 +49,16 @@ async function loadTiles() {
   let ok = 0;
   const total = TILE.rows * TILE.cols;
   let done = 0;
-  for (let r = 0; r < TILE.rows; r++) {
-    for (let c = 0; c < TILE.cols; c++) {
+  // markazdan boshlab yuklash — birinchi taassurot yaxshi bo'ladi
+  const order = [];
+  for (let r = 0; r < TILE.rows; r++) for (let c = 0; c < TILE.cols; c++) {
+    const la = BBOX.S + (BBOX.N - BBOX.S) * (r + 0.5) / TILE.rows;
+    const lo = BBOX.W + (BBOX.E - BBOX.W) * (c + 0.5) / TILE.cols;
+    order.push({ r, c, d: (la - CENTER.lat) ** 2 + (lo - CENTER.lon) ** 2 });
+  }
+  order.sort((a, b) => a.d - b.d);
+  for (const { r, c } of order) {
+    {
       done++;
       const msg = document.getElementById('loadmsg');
       if (msg) msg.textContent = `Xarita yuklanmoqda... ${done}/${total}`;
