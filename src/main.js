@@ -163,7 +163,7 @@ function autoQuality(dt) {
   if (qLevel === 1) { renderer.setPixelRatio(1); sun.shadow.mapSize.set(1024, 1024); sun.shadow.map?.dispose(); sun.shadow.map = null; }
   if (qLevel === 2) { renderer.shadowMap.enabled = false; sun.castShadow = false; }
 }
-let streetT = 0;
+let streetT = 0, saveT = 0;
 const ray = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let downAt = 0;
@@ -212,6 +212,13 @@ addEventListener('keydown', e => {
   player.spawnCars(scene, carSpots());
   player.named = ctx.named;
   player.routes = ctx.routes;
+  try {
+    const sv = JSON.parse(localStorage.getItem('urganch_pos') || 'null');
+    if (sv && Math.abs(sv.x) < 4000 && Math.abs(sv.z) < 4000) {
+      player.pos.set(sv.x, 1.7, sv.z);
+      player.yaw = sv.yaw || 0;
+    }
+  } catch { /* ignore */ }
   buildSolidGrid();
   sim = new Sim(scene, ctx, player);
   labels.rebuild(ctx.named);
@@ -240,6 +247,11 @@ addEventListener('resize', () => {
   labels.update(player.pos);
   autoQuality(dt);
   streetT += dt;
+  saveT += dt;
+  if (saveT > 5) {
+    saveT = 0;
+    try { localStorage.setItem('urganch_pos', JSON.stringify({ x: player.pos.x, z: player.pos.z, yaw: player.yaw })); } catch { /* ignore */ }
+  }
   if (streetT > 1) {
     streetT = 0;
     const el = document.getElementById('bname');
