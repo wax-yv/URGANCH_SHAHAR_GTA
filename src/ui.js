@@ -19,7 +19,7 @@ export function initUI(ctx, player) {
   document.body.appendChild(map);
   const help = document.createElement('div');
   help.id = 'help';
-  help.innerHTML = `Mashina yaqinida <b>E</b> (yoki klik). W/S gaz-tormoz, A/D rul, Space ruchnoy, C orqa, L fara, T teleport, H foto. Piyoda: WASD + strelka kamera.`;
+  help.innerHTML = `Mashina yaqinida <b>E</b> (yoki klik). W/S gaz-tormoz, A/D rul, Space ruchnoy, C orqa, V kamera, L fara, N tun, T teleport, H foto. Piyoda: WASD + strelka kamera.`;
   document.body.appendChild(help);
   setTimeout(() => help.remove(), 12000);
   return { hud, map };
