@@ -50,7 +50,7 @@ async function loadTiles() {
   const ov = document.createElement('div');
   ov.id = 'load';
   if (free) ov.style.display = 'none';
-  ov.innerHTML = '<b>URGANCH_SHAHAR_GTA</b><br/><span id="loadmsg">Xarita yuklanmoqda...</span>';
+  ov.innerHTML = '<b>URGANCH_SHAHAR_GTA</b><br/><span id="loadmsg">Xarita yuklanmoqda...</span><br/><small>© OpenStreetMap contributors (ODbL)</small>';
   document.body.appendChild(ov);
   let ok = 0;
   const total = TILE.rows * TILE.cols;

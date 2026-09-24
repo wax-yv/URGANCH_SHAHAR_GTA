@@ -25,3 +25,4 @@ Vercel → Add New Project → `wax-yv/URGANCH_SHAHAR_GTA` import → build `npm
 
 ## Data
 `tools/fetch_full.py` — 4x4 tile OSM fetch. `public/data/tiles/t_r_c.json` tayyor bo'lsa avtomatik yuklanadi, bo'lmasa markaz sample bilan ishlaydi.
+Manba: © OpenStreetMap contributors, ODbL 1.0 (https://osm.org/copyright). Demo MVP da litsenziyali qatlamlar ulanadi.
