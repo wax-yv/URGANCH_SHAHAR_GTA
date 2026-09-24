@@ -152,16 +152,13 @@ export function buildTile(group, tile, ctx) {
       const li = makeTrafficLight();
       li.position.set(mid[0] + wd / 2 + 1.5, 0, mid[1]);
       group.add(li); ctx.lights.push(li); setLight(li, 'green');
-      // zebra — piyodalar o'tish joyi
-      const zg = new THREE.Group();
-      const zmat = new THREE.MeshBasicMaterial({ color: 0xe8e8e8 });
+      // zebra — piyodalar o'tish joyi (chiziqlar bilan bitta meshga)
+      tmpE.set(-Math.PI / 2, 0, -ang); tmpQ.setFromEuler(tmpE);
       for (let s = -3; s <= 3; s++) {
-        const bar = new THREE.Mesh(new THREE.PlaneGeometry(0.6, wd - 1), zmat);
-        bar.rotation.x = -Math.PI / 2; bar.rotation.z = -ang;
-        bar.position.set(mid[0] + Math.cos(ang) * s * 1.1, 0.075, mid[1] - Math.sin(ang) * s * 1.1);
-        zg.add(bar);
+        const bar = new THREE.PlaneGeometry(0.6, wd - 1);
+        tmpM.compose(new THREE.Vector3(mid[0] + Math.cos(ang) * s * 1.1, 0.075, mid[1] - Math.sin(ang) * s * 1.1), tmpQ, one);
+        bar.applyMatrix4(tmpM); dashGeos.push(bar);
       }
-      group.add(zg);
     }
   }
   ctx.routes.push(...routes);
