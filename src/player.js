@@ -20,6 +20,7 @@ export class Player {
       if (document.pointerLockElement) this.yaw -= e.movementX * 0.0025;
     });
     this.initTouch();
+    this.audio = null;
     addEventListener('click', () => {
       const c = document.querySelector('canvas');
       if (c && document.pointerLockElement !== c) { try { c.requestPointerLock(); } catch { /* ignore */ } }
@@ -68,6 +69,18 @@ background:rgba(255,215,95,.85);touch-action:none}
 @media(pointer:fine){#joy,#tbtn{display:none}}`;
     document.head.appendChild(st);
   }
+  engineSound() {
+    if (this.audio) return;
+    try {
+      const AC = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = AC.createOscillator(), gain = AC.createGain();
+      osc.type = 'sawtooth'; osc.frequency.value = 60;
+      gain.gain.value = 0.0;
+      osc.connect(gain).connect(AC.destination);
+      osc.start();
+      this.audio = { AC, osc, gain };
+    } catch { /* audio yo'q */ }
+  }
   spawnCars(scene, spots) {
     this.cars = [];
     const defs = CAR_TYPES;
@@ -86,7 +99,7 @@ background:rgba(255,215,95,.85);touch-action:none}
       const d = c.position.distanceTo(new THREE.Vector3(this.pos.x, 0, this.pos.z));
       if (d < bd) { bd = d; best = c; }
     }
-    if (best) { this.mode = 'drive'; this.car = best; }
+    if (best) { this.mode = 'drive'; this.car = best; this.engineSound(); }
   }
   update(dt) {
     const k = this.keys, t = this.touch;
@@ -116,6 +129,10 @@ background:rgba(255,215,95,.85);touch-action:none}
       const fw = new THREE.Vector3(0, 0, -1).applyQuaternion(this.car.quaternion);
       this.car.position.addScaledVector(fw, this.speed * dt);
       u.wheels.forEach(w => w.rotation.x += this.speed * dt * 2);
+      if (this.audio) {
+        this.audio.osc.frequency.value = 55 + Math.abs(this.speed) * 4;
+        this.audio.gain.gain.value = 0.03;
+      }
       const cp = this.car.position;
       this.camera.position.set(cp.x + Math.sin(this.car.rotation.y) * 10, Math.max(4.5, cp.y + 4.5), cp.z + Math.cos(this.car.rotation.y) * 10);
       this.camera.lookAt(cp.x, 1.5, cp.z);
@@ -128,6 +145,8 @@ background:rgba(255,215,95,.85);touch-action:none}
   exitCar() {
     if (!this.car) return;
     this.pos.set(this.car.position.x + 2.5, 1.7, this.car.position.z);
+    setBrake(this.car, false);
+    if (this.audio) this.audio.gain.gain.value = 0;
     this.car = null; this.mode = 'walk'; this.speed = 0;
   }
   parkCar() {
