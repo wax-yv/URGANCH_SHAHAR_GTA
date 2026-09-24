@@ -5,6 +5,7 @@ import { Player } from './player.js';
 import { Sim } from './sim.js';
 import { Labels } from './labels.js';
 import { initUI, drawMinimap, updateStat, nearestStreet } from './ui.js';
+import { toggleHead } from './models.js';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
@@ -19,13 +20,15 @@ scene.fog = new THREE.Fog(0x87a5c4, 400, 1600);
 const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.5, 3000);
 camera.position.set(0, 120, 200);
 
-scene.add(new THREE.HemisphereLight(0xbfd6ff, 0x8a7f6a, 0.9));
+const hemi = new THREE.HemisphereLight(0xbfd6ff, 0x8a7f6a, 0.9);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.6);
 sun.position.set(120, 180, 60);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -150, right: 150, top: 150, bottom: -150, far: 700 });
 scene.add(sun, sun.target);
+scene.userData.day = true;
 
 buildGround(scene);
 
@@ -171,6 +174,21 @@ addEventListener('mouseup', e => {
     }
   }
   player.tryEnter();
+});
+
+addEventListener('keydown', e => {
+  if (e.key.toLowerCase() === 'n') {
+    const day = !scene.userData.day;
+    scene.userData.day = day;
+    scene.background.set(day ? 0x87a5c4 : 0x0a1020);
+    scene.fog.color.set(day ? 0x87a5c4 : 0x0a1020);
+    sun.intensity = day ? 1.6 : 0.12;
+    hemi.intensity = day ? 0.9 : 0.15;
+    if (player.car) {
+      const L = player.car.userData.lights;
+      if (L && L.on !== !day) toggleHead(player.car);
+    }
+  }
 });
 
 (async () => {
