@@ -172,3 +172,43 @@ export function buildTile(group, tile, ctx) {
   }
   return { buildings: buildings.length, footprints, roads: roads.length };
 }
+
+// POI qatlam: parking zonalar + muassasa markerlari
+export function buildPOI(group, poi, ctx) {
+  if (!poi) return;
+  const lots = poi.parking || [];
+  for (const f of lots) {
+    const g = f.geometry;
+    const c = f.center || (g && g[0]);
+    if (!c) continue;
+    const [x, z] = toXZ(c.lat, c.lon);
+    let w = 30, d = 18;
+    if (f.type === 'way' && g && g.length > 2) {
+      const pts = g.map(p => toXZ(p.lat, p.lon));
+      const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+      w = Math.max(10, Math.max(...xs) - Math.min(...xs));
+      d = Math.max(8, Math.max(...zs) - Math.min(...zs));
+    }
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d),
+      new THREE.MeshLambertMaterial({ color: 0x555b63 }));
+    m.rotation.x = -Math.PI / 2; m.position.set(x, 0.07, z); m.receiveShadow = true;
+    group.add(m);
+    // P belgisi
+    ctx.named.push({ x, z, h: 3, tags: { name: '🅿 ' + (f.tags?.name || 'Parking'), amenity: 'parking' } });
+  }
+  const pin = (list, color) => {
+    for (const e of (list || []).slice(0, 600)) {
+      const c = e.center || (e.lat != null ? e : null);
+      if (!c || c.lat == null) continue;
+      const [x, z] = toXZ(c.lat, c.lon);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(8, 10, 8),
+        new THREE.MeshLambertMaterial({ color }));
+      m.position.set(x, 0, z); m.castShadow = true;
+      group.add(m);
+      ctx.solids.push({ x, z, r: 6 });
+      if (e.tags?.name) ctx.named.push({ x, z, h: 10, tags: e.tags });
+    }
+  };
+  pin(poi.school, 0xe07b39); pin(poi.bank, 0x3a7bd5);
+  pin(poi.shop, 0x9b59b6); pin(poi.food, 0xe74c3c); pin(poi.hospital, 0xecf0f1);
+}

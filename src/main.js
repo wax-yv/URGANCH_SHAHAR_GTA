@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { TILE } from './config.js';
-import { buildGround, buildTile } from './city.js';
+import { buildGround, buildTile, buildPOI } from './city.js';
 import { Player } from './player.js';
 import { Sim } from './sim.js';
 import { Labels } from './labels.js';
@@ -67,6 +67,16 @@ async function loadTiles() {
       world.add(g); tileGroups.push(g);
     } catch { /* ignore */ }
   }
+  // POI qatlami (mavjud bo'lsa)
+  try {
+    const rp = await fetch('./data/poi.json');
+    if (rp.ok) {
+      const poi = await rp.json();
+      const g = new THREE.Group();
+      buildPOI(g, poi, ctx);
+      world.add(g);
+    }
+  } catch { /* hali yo'q */ }
   return ok;
 }
 
