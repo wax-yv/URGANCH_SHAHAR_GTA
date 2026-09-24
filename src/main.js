@@ -36,9 +36,18 @@ const tileGroups = [];
 const labels = new Labels(scene);
 
 async function loadTiles() {
+  const ov = document.createElement('div');
+  ov.id = 'load';
+  ov.innerHTML = '<b>URGANCH_SHAHAR_GTA</b><br/><span id="loadmsg">Xarita yuklanmoqda...</span>';
+  document.body.appendChild(ov);
   let ok = 0;
+  const total = TILE.rows * TILE.cols;
+  let done = 0;
   for (let r = 0; r < TILE.rows; r++) {
     for (let c = 0; c < TILE.cols; c++) {
+      done++;
+      const msg = document.getElementById('loadmsg');
+      if (msg) msg.textContent = `Xarita yuklanmoqda... ${done}/${total}`;
       try {
         const res = await fetch(`./data/tiles/t_${r}_${c}.json`);
         if (!res.ok) continue;
@@ -148,7 +157,9 @@ addEventListener('mouseup', e => {
 });
 
 (async () => {
-  await loadTiles();
+  const n = await loadTiles();
+  const ov = document.getElementById('load');
+  if (ov) ov.remove();
   player.spawnCars(scene, carSpots());
   sim = new Sim(scene, ctx);
   labels.rebuild(ctx.named);
