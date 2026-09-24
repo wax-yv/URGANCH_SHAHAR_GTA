@@ -1,106 +1,137 @@
 import * as THREE from 'three';
+import { BBOX, TILE } from './config.js';
+import { toXZ, citySize } from './geo.js';
+import { buildGround, buildTile } from './city.js';
+import { Player } from './player.js';
+import { Sim } from './sim.js';
+import { initUI, drawMinimap, updateStat } from './ui.js';
 
-const app = document.getElementById('app');
-app.innerHTML = '<div id="hud">URGANCH_SHAHAR_GTA — yuklanmoqda...</div><canvas id="c"></canvas>';
-
-const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
+document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87a5c4);
+scene.fog = new THREE.Fog(0x87a5c4, 400, 1600);
 
-const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.5, 2000);
-camera.position.set(0, 120, 180);
+const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.5, 3000);
+camera.position.set(0, 120, 200);
 
-const hemi = new THREE.HemisphereLight(0xbfd6ff, 0x8a7f6a, 0.9);
-scene.add(hemi);
+scene.add(new THREE.HemisphereLight(0xbfd6ff, 0x8a7f6a, 0.9));
 const sun = new THREE.DirectionalLight(0xffffff, 1.6);
 sun.position.set(120, 180, 60);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -150; sun.shadow.camera.right = 150;
-sun.shadow.camera.top = 150; sun.shadow.camera.bottom = -150;
-sun.shadow.camera.far = 600;
-scene.add(sun);
-scene.add(sun.target);
+Object.assign(sun.shadow.camera, { left: -150, right: 150, top: 150, bottom: -150, far: 700 });
+scene.add(sun, sun.target);
 
-// yer 2x2km
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(2000, 2000),
-  new THREE.MeshLambertMaterial({ color: 0x9aa08a })
-);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
+buildGround(scene);
 
-const LAT0 = 41.5517, LON0 = 60.6312;
-const toXZ = (lat, lon) => [
-  (lon - LON0) * 111320 * Math.cos(LAT0 * Math.PI / 180),
-  -(lat - LAT0) * 110540
-];
+const ctx = { named: [], lights: [], routes: [] };
+const world = new THREE.Group();
+scene.add(world);
 
-async function loadBuildings() {
-  const res = await fetch('/data/sample_buildings.json').catch(() => null);
-  // vite dev da /dataishlamasa — public emas, src dan fallback
-  let arr = [];
-  if (res && res.ok) arr = await res.json();
-  else {
-    const r2 = await fetch('./data/sample_buildings.json').catch(() => null);
-    if (r2 && r2.ok) arr = await r2.json();
+async function loadTiles() {
+  let ok = 0;
+  for (let r = 0; r < TILE.rows; r++) {
+    for (let c = 0; c < TILE.cols; c++) {
+      try {
+        const res = await fetch(`./data/tiles/t_${r}_${c}.json`);
+        if (!res.ok) continue;
+        const tile = await res.json();
+        const g = new THREE.Group();
+        const st = buildTile(g, tile, ctx);
+        world.add(g); ok++;
+        console.log(`tile t_${r}_${c}:`, st);
+      } catch { /* hali tayyor emas */ }
+    }
   }
-  const geo = new THREE.BoxGeometry(1, 1, 1);
-  geo.translate(0, 0.5, 0);
-  const mat = new THREE.MeshLambertMaterial({ color: 0xcfc4ae });
-  const matNamed = new THREE.MeshLambertMaterial({ color: 0xd98f5f });
-  const plain = arr.filter(b => !b.tags?.name);
-  const named = arr.filter(b => b.tags?.name);
-  const mk = (list, material) => {
-    const m = new THREE.InstancedMesh(geo, material, Math.max(list.length, 1));
-    const d = new THREE.Object3D();
-    list.forEach((b, i) => {
-      const c = b.center || { lat: b.lat, lon: b.lon };
-      if (!c || c.lat == null) return;
-      const [x, z] = toXZ(c.lat, c.lon);
-      const h = b.tags?.height ? parseFloat(b.tags.height) || 8
-        : b.tags?.['building:levels'] ? parseFloat(b.tags['building:levels']) * 3 : 8;
-      d.position.set(x, 0, z);
-      d.scale.set(12, Math.min(h, 40), 12);
-      d.updateMatrix();
-      m.setMatrixAt(i, d.matrix);
-    });
-    m.castShadow = true; m.receiveShadow = true;
-    scene.add(m);
-  };
-  mk(plain, mat); mk(named, matNamed);
-  document.getElementById('hud').textContent =
-    `URGANCH markaz 2x2km — ${arr.length} bino (${named.length} nomli) | WASD Yurish keyin`;
+  if (!ok) {
+    // fallback: markaz sample
+    try {
+      const res = await fetch('./data/sample_buildings.json');
+      const buildings = res.ok ? await res.json() : [];
+      const g = new THREE.Group();
+      buildTile(g, { buildings, roads: [], water: [] }, ctx);
+      world.add(g);
+      console.log('fallback sample:', buildings.length);
+    } catch (e) { console.warn('no data', e); }
+  }
+  return ok;
 }
-loadBuildings();
 
-// oddiy orbit-yurish: sudrab aylantirish
-let yaw = 0, pitch = 0.5, dist = 220;
-let tx = 0, tz = 0;
-addEventListener('keydown', e => {
-  const s = 8;
-  if (e.key === 'w' || e.key === 'W') { tx -= Math.sin(yaw) * s; tz -= Math.cos(yaw) * s; }
-  if (e.key === 's' || e.key === 'S') { tx += Math.sin(yaw) * s; tz += Math.cos(yaw) * s; }
-  if (e.key === 'a' || e.key === 'A') { tx -= Math.cos(yaw) * s; tz += Math.sin(yaw) * s; }
-  if (e.key === 'd' || e.key === 'D') { tx += Math.cos(yaw) * s; tz -= Math.sin(yaw) * s; }
+const player = new Player(scene, camera);
+const ui = initUI(ctx, player);
+
+// mashina spawn nuqtalari: asosiy yo'l bo'ylab + parkovka
+function carSpots() {
+  const spots = [];
+  for (const rt of ctx.routes.slice(0, 8)) {
+    for (let i = 0; i < rt.length; i += 6) spots.push({ x: rt[i].x + 4, z: rt[i].z });
+  }
+  for (let i = 0; i < 12; i++) spots.push({ x: -60 + i * 10, z: 90 }); // parkovka qatori
+  if (!spots.length) for (let i = 0; i < 20; i++) spots.push({ x: (i - 10) * 12, z: 60 });
+  return spots;
+}
+
+let sim = null;
+let fps = 60, last = performance.now(), frames = 0, ft = 0;
+
+// bino nomi raycast
+const ray = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let downAt = 0;
+addEventListener('mousedown', () => downAt = performance.now());
+addEventListener('mouseup', e => {
+  if (performance.now() - downAt > 250) return; // sudrash emas, klik
+  if (player.mode === 'drive') return;
+  mouse.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  // nomli binolar yaqinini topish (pozitsiya bo'yicha)
+  const hit = ray.intersectObjects(world.children, true)[0];
+  const el = document.getElementById('bname');
+  if (el) {
+    if (hit) {
+      let best = null, bd = 1e9;
+      for (const n of ctx.named) {
+        const d = (n.x - hit.point.x) ** 2 + (n.z - hit.point.z) ** 2;
+        if (d < bd) { bd = d; best = n; }
+      }
+      el.textContent = best && bd < 400 ? `📍 ${best.tags.name || ''} ${best.tags.amenity || best.tags.shop || ''}` : '';
+    } else if (el) el.textContent = '';
+  }
+  player.tryEnter();
 });
-let drag = false, px = 0;
-addEventListener('mousedown', e => { drag = true; px = e.clientX; });
-addEventListener('mouseup', () => drag = false);
-addEventListener('mousemove', e => { if (drag) yaw += (e.clientX - px) * 0.005, px = e.clientX; });
 
-(function loop() {
-  requestAnimationFrame(loop);
-  camera.position.set(tx + Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist, tz + Math.cos(yaw) * Math.cos(pitch) * dist);
-  camera.lookAt(tx, 0, tz);
-  sun.position.set(tx + 120, 180, tz + 60);
-  sun.target.position.set(tx, 0, tz);
-  renderer.render(scene, camera);
+(async () => {
+  await loadTiles();
+  player.spawnCars(scene, carSpots());
+  sim = new Sim(scene, ctx);
+  const el = document.getElementById('bname');
+  if (el) el.textContent = `Yuklandi: ${ctx.named.length} nomli bino | mashina yaqinida E bosing`;
 })();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+(function loop(t) {
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now; frames++; ft += dt;
+  if (ft >= 0.5) { fps = Math.round(frames / ft); frames = 0; ft = 0; }
+  player.update(dt);
+  sim?.update(dt);
+  // quyosh o'yinchini kuzatadi (soya 150m)
+  sun.position.set(player.pos.x + 120, 180, player.pos.z + 60);
+  sun.target.position.set(player.pos.x, 0, player.pos.z);
+  updateStat(player, fps);
+  drawMinimap(ui.map, player, ctx);
+  renderer.render(scene, camera);
+})(0);
