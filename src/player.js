@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { CAR_TYPES } from './config.js';
 import { makeCar } from './models.js';
 
-// O'yinchi: piyoda (WASD+sichqoncha) + mashina (arcade) + E o'tirish/tushish
 export class Player {
   constructor(scene, camera) {
     this.scene = scene; this.camera = camera;
@@ -12,6 +11,7 @@ export class Player {
     this.car = null;
     this.speed = 0;
     this.keys = {};
+    this.touch = { f: 0, s: 0 }; // joystick: f oldinga, s yonga
     this.parked = [];
     addEventListener('keydown', e => { this.keys[e.key.toLowerCase()] = true; });
     addEventListener('keyup', e => { this.keys[e.key.toLowerCase()] = false; });
@@ -19,7 +19,54 @@ export class Player {
     addEventListener('mousemove', e => {
       if (document.pointerLockElement) this.yaw -= e.movementX * 0.0025;
     });
-    renderer_dom_lock(camera);
+    this.initTouch();
+    addEventListener('click', () => {
+      const c = document.querySelector('canvas');
+      if (c && document.pointerLockElement !== c) { try { c.requestPointerLock(); } catch { /* ignore */ } }
+    });
+  }
+  initTouch() {
+    const joy = document.createElement('div');
+    joy.id = 'joy';
+    joy.innerHTML = '<div id="stick"></div>';
+    const btn = document.createElement('div');
+    btn.id = 'tbtn';
+    btn.innerHTML = '<button id="bE">E</button><button id="bP">P</button>';
+    document.body.append(joy, btn);
+    const stick = joy.querySelector('#stick');
+    let tid = null, cx = 0, cy = 0;
+    const R = 45;
+    joy.addEventListener('touchstart', e => {
+      const t = e.changedTouches[0]; tid = t.identifier;
+      const r = joy.getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2;
+    }, { passive: true });
+    joy.addEventListener('touchmove', e => {
+      for (const t of e.changedTouches) {
+        if (t.identifier !== tid) continue;
+        let dx = t.clientX - cx, dy = t.clientY - cy;
+        const d = Math.hypot(dx, dy) || 1;
+        const k = Math.min(d, R) / d;
+        dx *= k; dy *= k;
+        stick.style.transform = `translate(${dx}px,${dy}px)`;
+        this.touch = { f: -dy / R, s: dx / R };
+      }
+    }, { passive: true });
+    const end = () => { tid = null; stick.style.transform = ''; this.touch = { f: 0, s: 0 }; };
+    joy.addEventListener('touchend', end); joy.addEventListener('touchcancel', end);
+    document.getElementById('bE').addEventListener('touchstart', e => {
+      e.preventDefault();
+      this.mode === 'walk' ? this.tryEnter() : this.exitCar();
+    });
+    document.getElementById('bP').addEventListener('touchstart', e => { e.preventDefault(); this.parkCar(); });
+    const st = document.createElement('style');
+    st.textContent = `#joy{position:fixed;left:16px;bottom:70px;width:110px;height:110px;border-radius:50%;
+background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);z-index:11;touch-action:none}
+#stick{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.5);margin:31px}
+#tbtn{position:fixed;right:16px;bottom:70px;z-index:11;display:flex;gap:10px}
+#tbtn button{width:56px;height:56px;border-radius:50%;font-size:20px;font-weight:700;border:none;
+background:rgba(255,215,95,.85);touch-action:none}
+@media(pointer:fine){#joy,#tbtn{display:none}}`;
+    document.head.appendChild(st);
   }
   spawnCars(scene, spots) {
     this.cars = [];
@@ -42,56 +89,45 @@ export class Player {
     if (best) { this.mode = 'drive'; this.car = best; }
   }
   update(dt) {
-    const k = this.keys;
+    const k = this.keys, t = this.touch;
     if (k['e']) { k['e'] = false; this.mode === 'walk' ? this.tryEnter() : this.exitCar(); }
     if (k['p'] && this.mode === 'drive') { k['p'] = false; this.parkCar(); }
-    // rejim almashtirish: 1-piyoda 2-mashina yaqiniga teleport emas
     if (this.mode === 'walk') {
       const sp = 7 * dt;
       const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
       const r = new THREE.Vector3(-f.z, 0, f.x);
-      if (k['w']) this.pos.addScaledVector(f, sp);
-      if (k['s']) this.pos.addScaledVector(f, -sp);
-      if (k['a']) this.pos.addScaledVector(r, -sp);
-      if (k['d']) this.pos.addScaledVector(r, sp);
+      const fw = (k['w'] ? 1 : 0) - (k['s'] ? 1 : 0) + t.f;
+      const st = (k['d'] ? 1 : 0) - (k['a'] ? 1 : 0) + t.s;
+      this.pos.addScaledVector(f, fw * sp).addScaledVector(r, st * sp);
       this.camera.position.copy(this.pos);
       this.camera.rotation.set(0, this.yaw, 0, 'YXZ');
     } else if (this.car) {
       const u = this.car.userData;
       const maxV = u.type.maxV;
-      if (k['w']) this.speed = Math.min(this.speed + 18 * dt, maxV);
-      else if (k['s']) this.speed = Math.max(this.speed - 22 * dt, -8);
+      const gas = (k['w'] ? 1 : 0) + Math.max(0, t.f);
+      const brk = (k['s'] ? 1 : 0) + Math.max(0, -t.f);
+      if (gas) this.speed = Math.min(this.speed + 18 * dt * gas, maxV);
+      else if (brk) this.speed = Math.max(this.speed - 22 * dt * brk, -8);
       else this.speed *= (1 - 1.6 * dt);
-      if (k['a']) this.car.rotation.y += (1.6 * dt) * Math.sign(this.speed || 1);
-      if (k['d']) this.car.rotation.y -= (1.6 * dt) * Math.sign(this.speed || 1);
+      const steer = ((k['a'] ? 1 : 0) - (k['d'] ? 1 : 0)) - t.s;
+      this.car.rotation.y += steer * 1.6 * dt * Math.sign(this.speed || 1);
       const fw = new THREE.Vector3(0, 0, -1).applyQuaternion(this.car.quaternion);
-      this.car.position.addScaledVector(fw, -this.speed * dt * -1);
-      // minimal fizika: g'ildirak aylanishi
+      this.car.position.addScaledVector(fw, this.speed * dt);
       u.wheels.forEach(w => w.rotation.x += this.speed * dt * 2);
-      const cp = this.car.position.clone();
-      this.camera.position.set(cp.x - Math.sin(this.car.rotation.y) * -10, 4.5, cp.z - Math.cos(this.car.rotation.y) * -10);
+      const cp = this.car.position;
+      this.camera.position.set(cp.x + Math.sin(this.car.rotation.y) * 10, 4.5, cp.z + Math.cos(this.car.rotation.y) * 10);
       this.camera.lookAt(cp.x, 1.5, cp.z);
       this.pos.set(cp.x, 1.7, cp.z);
     }
   }
   exitCar() {
     if (!this.car) return;
-    const p = this.car.position.clone();
-    p.x += 2.5; this.pos.set(p.x, 1.7, p.z);
+    this.pos.set(this.car.position.x + 2.5, 1.7, this.car.position.z);
     this.car = null; this.mode = 'walk'; this.speed = 0;
   }
   parkCar() {
-    if (!this.car) return;
+    if (this.mode !== 'drive' || !this.car) return;
     this.parked.push(this.car.position.clone());
     this.exitCar();
   }
-}
-function renderer_dom_lock(camera) {
-  addEventListener('click', () => {
-    const c = document.querySelector('canvas');
-    if (c && document.pointerLockElement !== c && camera) {
-      // faqat walk rejimda lock — xatolik chiqmasligi uchun try
-      try { c.requestPointerLock(); } catch { /* ignore */ }
-    }
-  });
 }

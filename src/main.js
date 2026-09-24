@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BBOX, TILE } from './config.js';
-import { toXZ, citySize } from './geo.js';
+import { TILE } from './config.js';
 import { buildGround, buildTile } from './city.js';
 import { Player } from './player.js';
 import { Sim } from './sim.js';
+import { Labels } from './labels.js';
 import { initUI, drawMinimap, updateStat } from './ui.js';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -16,7 +16,6 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87a5c4);
 scene.fog = new THREE.Fog(0x87a5c4, 400, 1600);
-
 const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.5, 3000);
 camera.position.set(0, 120, 200);
 
@@ -30,9 +29,11 @@ scene.add(sun, sun.target);
 
 buildGround(scene);
 
-const ctx = { named: [], lights: [], routes: [] };
+const ctx = { named: [], lights: [], routes: [], solids: [] };
 const world = new THREE.Group();
 scene.add(world);
+const tileGroups = [];
+const labels = new Labels(scene);
 
 async function loadTiles() {
   let ok = 0;
@@ -44,53 +45,67 @@ async function loadTiles() {
         const tile = await res.json();
         const g = new THREE.Group();
         const st = buildTile(g, tile, ctx);
-        world.add(g); ok++;
-        console.log(`tile t_${r}_${c}:`, st);
-      } catch { /* hali tayyor emas */ }
+        g.userData.center = st.center || null;
+        // markaz: bbox o'rtasi
+        if (tile.bbox) {
+          const [s, w, n, e] = tile.bbox;
+          const { toXZ } = await import('./geo.js');
+          const [x1, z1] = toXZ((s + n) / 2, (w + e) / 2);
+          g.userData.center = new THREE.Vector3(x1, 0, z1);
+        }
+        world.add(g); tileGroups.push(g); ok++;
+      } catch { /* tayyor emas */ }
     }
   }
   if (!ok) {
-    // fallback: markaz sample
     try {
       const res = await fetch('./data/sample_buildings.json');
       const buildings = res.ok ? await res.json() : [];
       const g = new THREE.Group();
       buildTile(g, { buildings, roads: [], water: [] }, ctx);
-      world.add(g);
-      console.log('fallback sample:', buildings.length);
-    } catch (e) { console.warn('no data', e); }
+      g.userData.center = new THREE.Vector3(0, 0, 0);
+      world.add(g); tileGroups.push(g);
+    } catch { /* ignore */ }
   }
   return ok;
+}
+
+// to'qnashuv: bino radiusidan itarish
+function collide(p, isCar, carR = 2) {
+  const px = p.x, pz = p.z;
+  for (const s of ctx.solids) {
+    const dx = px - s.x, dz = pz - s.z;
+    const rr = s.r + (isCar ? carR : 0.6);
+    const d2 = dx * dx + dz * dz;
+    if (d2 < rr * rr && d2 > 0.001) {
+      const d = Math.sqrt(d2);
+      p.x = s.x + (dx / d) * rr;
+      p.z = s.z + (dz / d) * rr;
+    }
+  }
 }
 
 const player = new Player(scene, camera);
 const ui = initUI(ctx, player);
 
-// mashina spawn nuqtalari: asosiy yo'l bo'ylab + parkovka
 function carSpots() {
   const spots = [];
-  for (const rt of ctx.routes.slice(0, 8)) {
+  for (const rt of ctx.routes.slice(0, 8))
     for (let i = 0; i < rt.length; i += 6) spots.push({ x: rt[i].x + 4, z: rt[i].z });
-  }
-  for (let i = 0; i < 12; i++) spots.push({ x: -60 + i * 10, z: 90 }); // parkovka qatori
+  for (let i = 0; i < 12; i++) spots.push({ x: -60 + i * 10, z: 90 });
   if (!spots.length) for (let i = 0; i < 20; i++) spots.push({ x: (i - 10) * 12, z: 60 });
   return spots;
 }
 
-let sim = null;
-let fps = 60, last = performance.now(), frames = 0, ft = 0;
-
-// bino nomi raycast
+let sim = null, fps = 60, last = performance.now(), frames = 0, ft = 0;
 const ray = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let downAt = 0;
 addEventListener('mousedown', () => downAt = performance.now());
 addEventListener('mouseup', e => {
-  if (performance.now() - downAt > 250) return; // sudrash emas, klik
-  if (player.mode === 'drive') return;
+  if (performance.now() - downAt > 250 || player.mode === 'drive') return;
   mouse.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(mouse, camera);
-  // nomli binolar yaqinini topish (pozitsiya bo'yicha)
   const hit = ray.intersectObjects(world.children, true)[0];
   const el = document.getElementById('bname');
   if (el) {
@@ -100,8 +115,8 @@ addEventListener('mouseup', e => {
         const d = (n.x - hit.point.x) ** 2 + (n.z - hit.point.z) ** 2;
         if (d < bd) { bd = d; best = n; }
       }
-      el.textContent = best && bd < 400 ? `📍 ${best.tags.name || ''} ${best.tags.amenity || best.tags.shop || ''}` : '';
-    } else if (el) el.textContent = '';
+      el.textContent = best && bd < 900 ? `📍 ${best.tags.name || ''} ${best.tags.amenity || best.tags.shop || ''}` : '';
+    } else el.textContent = '';
   }
   player.tryEnter();
 });
@@ -110,8 +125,9 @@ addEventListener('mouseup', e => {
   await loadTiles();
   player.spawnCars(scene, carSpots());
   sim = new Sim(scene, ctx);
+  labels.rebuild(ctx.named);
   const el = document.getElementById('bname');
-  if (el) el.textContent = `Yuklandi: ${ctx.named.length} nomli bino | mashina yaqinida E bosing`;
+  if (el) el.textContent = `Yuklandi: ${ctx.named.length} nomli bino, ${ctx.routes.length} trafik route | E — mashinaga o'tish`;
 })();
 
 addEventListener('resize', () => {
@@ -120,18 +136,26 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-(function loop(t) {
+(function loop() {
   requestAnimationFrame(loop);
   const now = performance.now();
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now; frames++; ft += dt;
   if (ft >= 0.5) { fps = Math.round(frames / ft); frames = 0; ft = 0; }
   player.update(dt);
+  // to'qnashuv
+  if (player.mode === 'walk') collide(player.pos, false);
+  else if (player.car) { collide(player.car.position, true); player.pos.set(player.car.position.x, 1.7, player.car.position.z); }
   sim?.update(dt);
-  // quyosh o'yinchini kuzatadi (soya 150m)
+  labels.update(player.pos);
+  // tile streaming: 600m dan uzoq tile yashirin
+  for (const g of tileGroups) {
+    if (!g.userData.center) continue;
+    g.visible = g.userData.center.distanceTo(player.pos) < 900;
+  }
   sun.position.set(player.pos.x + 120, 180, player.pos.z + 60);
   sun.target.position.set(player.pos.x, 0, player.pos.z);
   updateStat(player, fps);
   drawMinimap(ui.map, player, ctx);
   renderer.render(scene, camera);
-})(0);
+})();
