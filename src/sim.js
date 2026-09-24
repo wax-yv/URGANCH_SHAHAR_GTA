@@ -25,9 +25,16 @@ export class Sim {
   }
   spawnNpcs() {
     const cols = [0x3a6fd8, 0xd83a6f, 0x3ad86f, 0xd8a53a, 0x7a3ad8];
+    const routes = this.ctx.routes.filter(r => r.length > 3);
     for (let i = 0; i < 40; i++) {
       const p = makePerson(cols[i % cols.length]);
-      p.position.set((Math.random() - 0.5) * 1400, 0, (Math.random() - 0.5) * 1400);
+      if (routes.length) {
+        const rt = routes[i % routes.length];
+        const pt = rt[Math.floor(Math.random() * rt.length)];
+        p.position.set(pt.x + 4 + Math.random() * 3, 0, pt.z + 4); // tratuarda
+      } else {
+        p.position.set((Math.random() - 0.5) * 1400, 0, (Math.random() - 0.5) * 1400);
+      }
       p.userData = { a: Math.random() * Math.PI * 2, t: Math.random() * 5 };
       this.scene.add(p); this.npcs.push(p);
     }
