@@ -36,7 +36,7 @@ export class Player {
     joy.innerHTML = '<div id="stick"></div>';
     const btn = document.createElement('div');
     btn.id = 'tbtn';
-    btn.innerHTML = '<button id="bE">E</button><button id="bP">P</button>';
+    btn.innerHTML = '<button id="bE">E</button><button id="bL">💡</button><button id="bP">P</button>';
     document.body.append(joy, btn);
     const stick = joy.querySelector('#stick');
     let tid = null, cx = 0, cy = 0;
@@ -63,6 +63,10 @@ export class Player {
       this.mode === 'walk' ? this.tryEnter() : this.exitCar();
     });
     document.getElementById('bP').addEventListener('touchstart', e => { e.preventDefault(); this.parkCar(); });
+    document.getElementById('bL').addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (this.mode === 'drive' && this.car) toggleHead(this.car);
+    });
     const st = document.createElement('style');
     st.textContent = `#joy{position:fixed;left:16px;bottom:70px;width:110px;height:110px;border-radius:50%;
 background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);z-index:11;touch-action:none}
