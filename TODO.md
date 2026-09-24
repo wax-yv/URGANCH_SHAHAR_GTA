@@ -2,7 +2,7 @@
 
 Chegara: 41.5225,60.5848,41.5879,60.6758 (7.2x7.6)
 Maqsad: 60fps, desktop, real soya 150m, 4x4 tile streaming
-Holat: 9/16 tile jonli (~13.1k bino, 2k yo'l) — qolgan tilelar fonda yuklanmoqda
+Holat: 15/16 tile jonli (~19.8k bino, 2.7k yo'l, 208 nomli) — t_3_3 fonda qayta urunmoqda
 
 - [x] 0.1 tools/fetch_osm.py — building/highway/water/parking fetch
 - [x] 0.2 data/tiles 4x4 split + markaz tile test
