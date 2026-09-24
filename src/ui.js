@@ -3,8 +3,8 @@ export function initUI(ctx, player) {
   const hud = document.createElement('div');
   hud.id = 'hud';
   hud.innerHTML = `
-    <b>URGANCH_SHAHAR_GTA</b> <span id="mode">PIYODA</span> |
-    WASD yurish/haydash, E — mashinaga o'tish/tushish, P — parkovka, 1/2 — kamera |
+    <b>URGANCH_SHAHAR_GTA</b> <span id="mode">PIYODA</span> <span id="comp">🧭 N</span> |
+    WASD yurish/haydash, E — mashinaga o'tish/tushish, P — parkovka, L — fara, 1/2 — kamera |
     <span id="stat"></span><br/><span id="bname"></span>`;
   document.body.prepend(hud);
   const map = document.createElement('canvas');
@@ -47,6 +47,12 @@ export function updateStat(player, fps) {
   if (m) m.textContent = player.mode === 'walk' ? 'PIYODA' : (`MASHINA: ${(player.car?.userData.type.name || '')} ${spd} km/s`);
   const s = document.getElementById('stat');
   if (s) s.textContent = `FPS ${fps} | mashinalar ${player.cars?.length ?? 0} | bot ${window.__bots ?? 15}`;
+  const cp = document.getElementById('comp');
+  if (cp) {
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const yaw = player.mode === 'drive' && player.car ? player.car.rotation.y : player.yaw;
+    cp.textContent = '🧭 ' + dirs[((Math.round(-yaw / (Math.PI / 4)) % 8) + 8) % 8];
+  }
 }
 
 // eng yaqin ko'cha nomi
