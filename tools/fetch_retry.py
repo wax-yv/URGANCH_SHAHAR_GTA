@@ -1,15 +1,27 @@
 """Qayta urinish — FAIL bo'lgan tile'lar ro'yxati bilan."""
 import json, os, sys, time, urllib.request, urllib.parse
 
-OVERPASS = "https://overpass.kumi.systems/api/interpreter"
+OVERPASS_LIST = [
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+];
 S = 41.5225; W = 60.5848; N = 41.5879; E = 60.6758
 OUT = "public/data/tiles"
+let_EP = 0;
 
 def fetch(q, timeout=90):
-    data = urllib.parse.urlencode({"data": q}).encode()
-    req = urllib.request.Request(OVERPASS, data=data, method="POST")
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode())
+    global let_EP
+    last = None
+    for _ in OVERPASS_LIST:
+        ep = OVERPASS_LIST[let_EP % len(OVERPASS_LIST)]; let_EP += 1
+        try:
+            data = urllib.parse.urlencode({"data": q}).encode()
+            req = urllib.request.Request(ep, data=data, method="POST")
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read().decode())
+        except Exception as ex:
+            last = ex
+    raise last
 
 if __name__ == "__main__":
     pairs = [tuple(map(int, p.split(","))) for p in sys.argv[1:]]
