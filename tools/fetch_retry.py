@@ -33,19 +33,35 @@ if __name__ == "__main__":
         s = S + (N - S) * r / 4; n = S + (N - S) * (r + 1) / 4
         w = W + (E - W) * c / 4; e = W + (E - W) * (c + 1) / 4
         ok = False
+        bels = []
         for attempt in (1, 2, 3):
             try:
                 b = fetch(f"[out:json][timeout:70];(nwr({s},{w},{n},{e})[building];);out tags center 4000;")
                 bels = [x for x in b.get("elements", []) if x["type"] != "count"]
+                break
+            except Exception as ex:
+                print(f"RETRY-B t_{r}_{c} a{attempt}: {str(ex)[:100]}", flush=True)
+                time.sleep(20)
+        if not bels:
+            print(f"GIVEUP t_{r}_{c} (no buildings)", flush=True)
+            time.sleep(15)
+            continue
+        wels = []
+        for attempt in (1, 2):
+            try:
                 rw = fetch(f"[out:json][timeout:70];(way({s},{w},{n},{e})[highway~'^(motorway|trunk|primary|secondary|tertiary|residential|living_street|service)$'];);out geom 1500;")
                 wels = [x for x in rw.get("elements", []) if x["type"] == "way"]
-                json.dump({"bbox": [s, w, n, e], "buildings": bels, "roads": wels, "water": []},
-                          open(fn, "w"), ensure_ascii=False)
-                print(f"OK t_{r}_{c}: b={len(bels)} r={len(wels)}", flush=True)
-                ok = True; break
+                break
             except Exception as ex:
-                print(f"RETRY t_{r}_{c} a{attempt}: {str(ex)[:100]}", flush=True)
-                time.sleep(20)
+                print(f"RETRY-R t_{r}_{c} a{attempt}: {str(ex)[:100]}", flush=True)
+                time.sleep(15)
+        try:
+            json.dump({"bbox": [s, w, n, e], "buildings": bels, "roads": wels, "water": []},
+                      open(fn, "w"), ensure_ascii=False)
+            print(f"OK t_{r}_{c}: b={len(bels)} r={len(wels)}", flush=True)
+            ok = True
+        except Exception as ex:
+            print(f"SAVEFAIL t_{r}_{c}: {ex}", flush=True)
         if not ok:
             print(f"GIVEUP t_{r}_{c}", flush=True)
         time.sleep(15)
