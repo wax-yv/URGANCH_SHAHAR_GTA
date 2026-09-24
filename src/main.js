@@ -138,8 +138,11 @@ addEventListener('mouseup', e => {
         const d = (n.x - hit.point.x) ** 2 + (n.z - hit.point.z) ** 2;
         if (d < bd) { bd = d; best = n; }
       }
-      el.textContent = best && bd < 900 ? `📍 ${best.tags.name || ''} ${best.tags.amenity || best.tags.shop || ''}` : '';
-    } else el.textContent = '';
+      if (best && bd < 900) {
+        el.textContent = `📍 ${best.tags.name || ''} ${best.tags.amenity || best.tags.shop || ''}`;
+        el.dataset.lock = Date.now();
+      }
+    }
   }
   player.tryEnter();
 });
@@ -175,9 +178,14 @@ addEventListener('resize', () => {
   streetT += dt;
   if (streetT > 1) {
     streetT = 0;
-    const st = nearestStreet(ctx, player.pos);
     const el = document.getElementById('bname');
-    if (el && st && !el.dataset.lock) el.textContent = `🛣 ${st}`;
+    if (el) {
+      const locked = el.dataset.lock && (Date.now() - +el.dataset.lock < 8000);
+      if (!locked) {
+        const st = nearestStreet(ctx, player.pos);
+        if (st) el.textContent = `🛣 ${st}`;
+      }
+    }
   }
   // tile streaming: 600m dan uzoq tile yashirin
   for (const g of tileGroups) {
