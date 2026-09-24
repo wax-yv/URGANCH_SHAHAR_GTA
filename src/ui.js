@@ -21,13 +21,22 @@ export function initUI(ctx, player) {
 export function drawMinimap(map, player, ctx) {
   const c = map.getContext('2d');
   c.fillStyle = '#20242a'; c.fillRect(0, 0, 170, 170);
+  // real yo'llar sxematik (masshtab: shahar ~7600m -> 170px)
+  const SX = 170 / 8000, OZ = 85;
+  const dot = (x, z) => [OZ + x * SX, OZ + z * SX];
+  c.strokeStyle = '#6b7280'; c.lineWidth = 1;
+  for (const rt of ctx.routes.slice(0, 40)) {
+    c.beginPath();
+    rt.forEach((p, i) => {
+      const [mx, mz] = dot(p.x, p.z);
+      i ? c.lineTo(mx, mz) : c.moveTo(mx, mz);
+    });
+    c.stroke();
+  }
   c.fillStyle = '#3f8fbf';
   c.fillRect(80, 20, 10, 130); // kanal sxematik
-  c.fillStyle = '#d9a45f';
-  ctx.named.slice(0, 200).forEach(() => {});
   // o'yinchi
-  const px = 85 + Math.max(-80, Math.min(80, player.pos.x / 40));
-  const pz = 85 + Math.max(-80, Math.min(80, player.pos.z / 40));
+  const [px, pz] = dot(Math.max(-4000, Math.min(4000, player.pos.x)), Math.max(-4000, Math.min(4000, player.pos.z)));
   c.fillStyle = '#22ff44';
   c.beginPath(); c.arc(px, pz, 4, 0, 7); c.fill();
 }

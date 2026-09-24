@@ -115,10 +115,13 @@ background:rgba(255,215,95,.85);touch-action:none}
       this.car.position.addScaledVector(fw, this.speed * dt);
       u.wheels.forEach(w => w.rotation.x += this.speed * dt * 2);
       const cp = this.car.position;
-      this.camera.position.set(cp.x + Math.sin(this.car.rotation.y) * 10, 4.5, cp.z + Math.cos(this.car.rotation.y) * 10);
+      this.camera.position.set(cp.x + Math.sin(this.car.rotation.y) * 10, Math.max(4.5, cp.y + 4.5), cp.z + Math.cos(this.car.rotation.y) * 10);
       this.camera.lookAt(cp.x, 1.5, cp.z);
       this.pos.set(cp.x, 1.7, cp.z);
     }
+    this.pos.x = Math.max(-4000, Math.min(4000, this.pos.x));
+    this.pos.z = Math.max(-4000, Math.min(4000, this.pos.z));
+    if (this.camera.position.y < 1.2) this.camera.position.y = 1.2;
   }
   exitCar() {
     if (!this.car) return;
