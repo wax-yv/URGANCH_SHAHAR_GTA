@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CAR_TYPES } from './config.js';
-import { makeCar, makePerson, setLight } from './models.js';
+import { makeCar, makePerson, setLight, setBrake } from './models.js';
 
 export class Sim {
   constructor(scene, ctx, player = null) {
@@ -58,7 +58,8 @@ export class Sim {
         i % 2 ? (st === 'green' ? 'red' : st === 'red' ? 'green' : 'yellow') : st));
     }
     for (const b of this.bots) {
-      if (b.wait > 0) { b.wait -= dt; continue; }
+      if (b.wait > 0) { b.wait -= dt; setBrake(b.mesh, true); continue; }
+      setBrake(b.mesh, false);
       const next = b.route[(b.i + 1) % b.route.length];
       if ((this._st === 'red' || this._st === 'yellow') && this.nearRedLight(next)) {
         b.wait = 0.4; continue; // svetoforda to'xtash
