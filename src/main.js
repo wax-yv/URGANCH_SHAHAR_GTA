@@ -52,8 +52,12 @@ async function loadTiles() {
   const ov = document.createElement('div');
   ov.id = 'load';
   if (free) ov.style.display = 'none';
-  ov.innerHTML = '<b>URGANCH_SHAHAR_GTA</b><br/><span id="loadmsg">Xarita yuklanmoqda...</span><br/><small>© OpenStreetMap contributors (ODbL)</small>';
+  ov.innerHTML = '<b>URGANCH_SHAHAR_GTA</b><br/><span id="loadmsg">Xarita yuklanmoqda...</span><br/><small>© OpenStreetMap contributors (ODbL)</small><br/><span id="err" style="color:#ff6666"></span>';
   document.body.appendChild(ov);
+  window.addEventListener('error', e => {
+    const el = document.getElementById('err') || document.getElementById('bname');
+    if (el) el.textContent = 'XATO: ' + (e.message || e.error);
+  });
   let ok = 0;
   const total = TILE.rows * TILE.cols;
   let done = 0;
@@ -222,32 +226,37 @@ window.__applySound = () => {
 };
 
 (async () => {
-  const n = await loadTiles();
-  const msg = document.getElementById('loadmsg');
-  if (msg) msg.textContent = 'Mashinalar yuklanmoqda...';
+  const stage = (t) => { const m = document.getElementById('loadmsg'); if (m) m.textContent = t; };
   try {
-    await preloadGarage((d, t) => { if (msg) msg.textContent = `Mashinalar ${d}/${t}...`; });
-  } catch { /* fallback procedural */ }
-  const ov = document.getElementById('load');
-  if (ov) ov.remove();
-  player.spawnCars(scene, carSpots());
-  player.named = ctx.named;
-  player.routes = ctx.routes;
-  buildLandmarks(scene, ctx);
-  try {
-    const sv = JSON.parse(localStorage.getItem('urganch_pos') || 'null');
-    if (sv && Math.abs(sv.x) < 4000 && Math.abs(sv.z) < 4000) {
-      player.pos.set(sv.x, 1.7, sv.z);
-      player.yaw = sv.yaw || 0;
-    }
-  } catch { /* ignore */ }
-  buildSolidGrid();
-  sim = new Sim(scene, ctx, player);
-  labels.rebuild(ctx.named);
-  window.__cityStat = `🏙 ${tileGroups.length}/16 tile | ${ctx.solids.length} bino | ${ctx.routes.length} route | ${ctx.named.length} nom | ${ctx.lights.length} svetofor`;
-  document.title = `READY named=${ctx.named.length} routes=${ctx.routes.length} lights=${ctx.lights.length}`;
-  const el = document.getElementById('bname');
-  if (el) el.textContent = `Yuklandi: ${ctx.named.length} nomli bino, ${ctx.routes.length} trafik route | E — mashinaga o'tish`;
+    const n = await loadTiles();
+    stage('Mashinalar yuklanmoqda...');
+    try {
+      await preloadGarage((d, t) => { stage(`Mashinalar ${d}/${t}...`); });
+    } catch { /* fallback procedural */ }
+    stage('Shahar qurilmoqda...');
+    const ov = document.getElementById('load');
+    if (ov) ov.remove();
+    player.spawnCars(scene, carSpots());
+    player.named = ctx.named;
+    player.routes = ctx.routes;
+    buildLandmarks(scene, ctx);
+    try {
+      const sv = JSON.parse(localStorage.getItem('urganch_pos') || 'null');
+      if (sv && Math.abs(sv.x) < 4000 && Math.abs(sv.z) < 4000) {
+        player.pos.set(sv.x, 1.7, sv.z);
+        player.yaw = sv.yaw || 0;
+      }
+    } catch { /* ignore */ }
+    buildSolidGrid();
+    sim = new Sim(scene, ctx, player);
+    labels.rebuild(ctx.named);
+    window.__cityStat = `🏙 ${tileGroups.length}/16 tile | ${ctx.solids.length} bino | ${ctx.routes.length} route | ${ctx.named.length} nom | ${ctx.lights.length} svetofor`;
+    document.title = `READY named=${ctx.named.length} routes=${ctx.routes.length} lights=${ctx.lights.length}`;
+    const el = document.getElementById('bname');
+    if (el) el.textContent = `Yuklandi: ${ctx.named.length} nomli bino, ${ctx.routes.length} trafik route | E — mashinaga o'tish`;
+  } catch (err) {
+    stage('XATO: ' + (err && err.message));
+  }
 })();
 
 addEventListener('resize', () => {
