@@ -199,6 +199,27 @@ export function buildTile(group, tile, ctx) {
     t.position.set(p.x + 9 + Math.random() * 6, 0, p.z + 9);
     group.add(t);
   }
+  // ko'cha chiroqlari (tun uchun emissiv)
+  const lampHeads = [], lampPoles = [];
+  const lampM4 = new THREE.Matrix4();
+  for (const rt of routes.slice(0, 6)) {
+    for (let i = 0; i < rt.length; i += 8) {
+      const g = new THREE.SphereGeometry(0.35, 6, 6);
+      lampM4.makeTranslation(rt[i].x + 6, 6.2, rt[i].z);
+      g.applyMatrix4(lampM4); lampHeads.push(g);
+      const pole = new THREE.CylinderGeometry(0.09, 0.09, 6.2, 5);
+      lampM4.makeTranslation(rt[i].x + 6, 3.1, rt[i].z);
+      pole.applyMatrix4(lampM4); lampPoles.push(pole);
+      if (lampHeads.length > 25) break;
+    }
+    if (lampHeads.length > 25) break;
+  }
+  if (lampHeads.length) {
+    const hm = new THREE.Mesh(mergeGeometries(lampHeads), new THREE.MeshBasicMaterial({ color: 0xffe9a8 }));
+    const pm = new THREE.Mesh(mergeGeometries(lampPoles), new THREE.MeshLambertMaterial({ color: 0x2c2c2c }));
+    pm.castShadow = true;
+    group.add(hm, pm);
+  }
   return { buildings: buildings.length, footprints, roads: roads.length };
 }
 
