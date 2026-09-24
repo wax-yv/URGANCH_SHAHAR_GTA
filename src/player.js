@@ -13,6 +13,8 @@ export class Player {
     this.keys = {};
     this.touch = { f: 0, s: 0 }; // joystick: f oldinga, s yonga
     this.parked = [];
+    this.named = [];
+    this.ni = 0;
     addEventListener('keydown', e => { this.keys[e.key.toLowerCase()] = true; });
     addEventListener('keyup', e => { this.keys[e.key.toLowerCase()] = false; });
     addEventListener('mousedown', e => { if (this.mode === 'walk' && e.button === 0) this.tryEnter(); });
@@ -101,11 +103,28 @@ background:rgba(255,215,95,.85);touch-action:none}
     }
     if (best) { this.mode = 'drive'; this.car = best; this.engineSound(); }
   }
+  teleport() {
+    if (!this.named.length || this.mode !== 'walk') return;
+    this.ni = (this.ni + 1) % this.named.length;
+    const n = this.named[this.ni];
+    this.pos.set(n.x + 15, 1.7, n.z + 15);
+    const el = document.getElementById('bname');
+    if (el) { el.textContent = `📍 ${n.tags.name || ''}`; el.dataset.lock = Date.now(); }
+  }
+    if (this.mode === 'drive') return;
+    let best = null, bd = 4;
+    for (const c of this.cars) {
+      const d = c.position.distanceTo(new THREE.Vector3(this.pos.x, 0, this.pos.z));
+      if (d < bd) { bd = d; best = c; }
+    }
+    if (best) { this.mode = 'drive'; this.car = best; this.engineSound(); }
+  }
   update(dt) {
     const k = this.keys, t = this.touch;
     if (k['e']) { k['e'] = false; this.mode === 'walk' ? this.tryEnter() : this.exitCar(); }
     if (k['p'] && this.mode === 'drive') { k['p'] = false; this.parkCar(); }
     if (k['l'] && this.mode === 'drive' && this.car) { k['l'] = false; toggleHead(this.car); }
+    if (k['t']) { k['t'] = false; this.teleport(); }
     if (this.mode === 'walk') {
       if (k['arrowleft']) this.yaw += 2.2 * dt;
       if (k['arrowright']) this.yaw -= 2.2 * dt;

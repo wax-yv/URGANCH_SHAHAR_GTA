@@ -163,6 +163,7 @@ addEventListener('mouseup', e => {
   const ov = document.getElementById('load');
   if (ov) ov.remove();
   player.spawnCars(scene, carSpots());
+  player.named = ctx.named;
   sim = new Sim(scene, ctx, player);
   labels.rebuild(ctx.named);
   document.title = `READY named=${ctx.named.length} routes=${ctx.routes.length} lights=${ctx.lights.length}`;
