@@ -125,7 +125,8 @@ background:rgba(255,215,95,.85);touch-action:none}
       if (gas) this.speed = Math.min(this.speed + 18 * dt * gas, maxV);
       else if (brk) this.speed = Math.max(this.speed - 22 * dt * brk, -8);
       else this.speed *= (1 - 1.6 * dt);
-      setBrake(this.car, !!brk);
+      if (k[' ']) this.speed *= (1 - 4 * dt); // ruchnoy tormoz
+      setBrake(this.car, !!brk || !!k[' ']);
       const steer = ((k['a'] ? 1 : 0) - (k['d'] ? 1 : 0)) - t.s;
       this.car.rotation.y += steer * 1.6 * dt * Math.sign(this.speed || 1);
       const fw = new THREE.Vector3(0, 0, -1).applyQuaternion(this.car.quaternion);
@@ -136,7 +137,8 @@ background:rgba(255,215,95,.85);touch-action:none}
         this.audio.gain.gain.value = 0.03;
       }
       const cp = this.car.position;
-      this.camera.position.set(cp.x + Math.sin(this.car.rotation.y) * 10, Math.max(4.5, cp.y + 4.5), cp.z + Math.cos(this.car.rotation.y) * 10);
+      const back = k['c'] ? 1 : -1; // C — orqaga qarash
+      this.camera.position.set(cp.x - Math.sin(this.car.rotation.y) * 10 * back, Math.max(4.5, cp.y + 4.5), cp.z - Math.cos(this.car.rotation.y) * 10 * back);
       this.camera.lookAt(cp.x, 1.5, cp.z);
       this.pos.set(cp.x, 1.7, cp.z);
     }
