@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { TILE } from './config.js';
+import { toXZ } from './geo.js';
 import { buildGround, buildTile, buildPOI } from './city.js';
 import { Player } from './player.js';
 import { Sim } from './sim.js';
@@ -63,7 +64,6 @@ async function loadTiles() {
         // markaz: bbox o'rtasi
         if (tile.bbox) {
           const [s, w, n, e] = tile.bbox;
-          const { toXZ } = await import('./geo.js');
           const [x1, z1] = toXZ((s + n) / 2, (w + e) / 2);
           g.userData.center = new THREE.Vector3(x1, 0, z1);
         }
