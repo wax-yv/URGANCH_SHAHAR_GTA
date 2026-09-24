@@ -7,7 +7,7 @@ Urganch 7.2x7.6 km GTA-demo — Vite + Three.js. Faqat ochiq OSM data.
 - WASD — piyoda yurish / mashinada gaz-tormoz-rul
 - Sichqoncha — kamera (klik bilan lock)
 - E yoki klik — yaqin mashinaga o'tirish/tushish
-- P — parkovka
+- P — parkovka, L — fara
 - Bino klik — nomi (OSM `name` bo'lsa)
 
 ## Mashinalar
