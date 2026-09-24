@@ -39,3 +39,15 @@ export function updateStat(player, fps) {
   const s = document.getElementById('stat');
   if (s) s.textContent = `FPS ${fps} | mashinalar ${player.cars?.length ?? 0} | bot ${window.__bots ?? 15}`;
 }
+
+// eng yaqin ko'cha nomi
+export function nearestStreet(ctx, pos) {
+  let best = null, bd = 30 * 30;
+  for (const st of ctx.streets) {
+    for (const [x, z] of st.pts) {
+      const d = (x - pos.x) ** 2 + (z - pos.z) ** 2;
+      if (d < bd) { bd = d; best = st.name; }
+    }
+  }
+  return best;
+}

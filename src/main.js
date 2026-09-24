@@ -4,7 +4,7 @@ import { buildGround, buildTile, buildPOI } from './city.js';
 import { Player } from './player.js';
 import { Sim } from './sim.js';
 import { Labels } from './labels.js';
-import { initUI, drawMinimap, updateStat } from './ui.js';
+import { initUI, drawMinimap, updateStat, nearestStreet } from './ui.js';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
@@ -29,7 +29,7 @@ scene.add(sun, sun.target);
 
 buildGround(scene);
 
-const ctx = { named: [], lights: [], routes: [], solids: [] };
+const ctx = { named: [], lights: [], routes: [], solids: [], streets: [] };
 const world = new THREE.Group();
 scene.add(world);
 const tileGroups = [];
@@ -108,6 +108,19 @@ function carSpots() {
 }
 
 let sim = null, fps = 60, last = performance.now(), frames = 0, ft = 0;
+let qLevel = 0, qTimer = 0; // avto-sifat: 0 to'liq, 1 o'rta, 2 past
+function autoQuality(dt) {
+  qTimer += dt;
+  if (qTimer < 3) return;
+  qTimer = 0;
+  if (fps < 28 && qLevel < 2) qLevel++;
+  else if (fps > 55 && qLevel > 0) qLevel--;
+  else return;
+  if (qLevel === 0) { renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.shadowMap.enabled = true; sun.castShadow = true; }
+  if (qLevel === 1) { renderer.setPixelRatio(1); sun.shadow.mapSize.set(1024, 1024); sun.shadow.map?.dispose(); sun.shadow.map = null; }
+  if (qLevel === 2) { renderer.shadowMap.enabled = false; sun.castShadow = false; }
+}
+let streetT = 0;
 const ray = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let downAt = 0;
@@ -158,6 +171,14 @@ addEventListener('resize', () => {
   else if (player.car) { collide(player.car.position, true); player.pos.set(player.car.position.x, 1.7, player.car.position.z); }
   sim?.update(dt);
   labels.update(player.pos);
+  autoQuality(dt);
+  streetT += dt;
+  if (streetT > 1) {
+    streetT = 0;
+    const st = nearestStreet(ctx, player.pos);
+    const el = document.getElementById('bname');
+    if (el && st && !el.dataset.lock) el.textContent = `🛣 ${st}`;
+  }
   // tile streaming: 600m dan uzoq tile yashirin
   for (const g of tileGroups) {
     if (!g.userData.center) continue;

@@ -131,6 +131,7 @@ export function buildTile(group, tile, ctx) {
   mkSet(plain, 0xcfc4ae); mkSet(named, 0xd98f5f);
 
   const routes = [];
+  const streets = [];
   for (const w of roads) {
     if (!w.geometry || w.geometry.length < 2) continue;
     const pts = w.geometry.map(p => toXZ(p.lat, p.lon));
@@ -139,6 +140,7 @@ export function buildTile(group, tile, ctx) {
     group.add(strip(pts, wd + 3, 0xb9b3a6, 0.04)); // tratuar
     group.add(strip(pts, wd, 0x3c3f45, 0.06));      // asfalt
     if (wd >= 7) group.add(dashes(pts));            // polosa chizig'i
+    if ((w.tags || {}).name) streets.push({ name: w.tags.name, pts });
     if (['primary', 'secondary', 'tertiary'].includes(hw) && pts.length > 3)
       routes.push(pts.map(([x, z]) => new THREE.Vector3(x, 0, z)));
     if (['primary', 'secondary'].includes(hw) && pts.length > 4) {
@@ -149,6 +151,7 @@ export function buildTile(group, tile, ctx) {
     }
   }
   ctx.routes.push(...routes);
+  ctx.streets.push(...streets);
 
   for (const f of water) {
     const g = f.geometry;
