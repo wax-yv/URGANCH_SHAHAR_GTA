@@ -111,14 +111,6 @@ background:rgba(255,215,95,.85);touch-action:none}
     const el = document.getElementById('bname');
     if (el) { el.textContent = `📍 ${n.tags.name || ''}`; el.dataset.lock = Date.now(); }
   }
-    if (this.mode === 'drive') return;
-    let best = null, bd = 4;
-    for (const c of this.cars) {
-      const d = c.position.distanceTo(new THREE.Vector3(this.pos.x, 0, this.pos.z));
-      if (d < bd) { bd = d; best = c; }
-    }
-    if (best) { this.mode = 'drive'; this.car = best; this.engineSound(); }
-  }
   update(dt) {
     const k = this.keys, t = this.touch;
     if (k['e']) { k['e'] = false; this.mode === 'walk' ? this.tryEnter() : this.exitCar(); }
