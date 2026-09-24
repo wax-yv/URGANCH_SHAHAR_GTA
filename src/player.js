@@ -15,6 +15,7 @@ export class Player {
     this.parked = [];
     this.named = [];
     this.ni = 0;
+    this.camMode = 0; // 0 chase, 1 kapot, 2 tepa
     addEventListener('keydown', e => { this.keys[e.key.toLowerCase()] = true; });
     addEventListener('keyup', e => { this.keys[e.key.toLowerCase()] = false; });
     addEventListener('mousedown', e => { if (this.mode === 'walk' && e.button === 0) this.tryEnter(); });
@@ -133,6 +134,7 @@ background:rgba(255,215,95,.85);touch-action:none}
     if (k['l'] && this.mode === 'drive' && this.car) { k['l'] = false; toggleHead(this.car); }
     if (k['t']) { k['t'] = false; this.teleport(); }
     if (k['r'] && this.mode === 'drive' && this.car) { k['r'] = false; this.rescue(); }
+    if (k['v'] && this.mode === 'drive') { k['v'] = false; this.camMode = (this.camMode + 1) % 3; }
     if (this.mode === 'walk') {
       if (k['arrowleft']) this.yaw += 2.2 * dt;
       if (k['arrowright']) this.yaw -= 2.2 * dt;
@@ -165,8 +167,19 @@ background:rgba(255,215,95,.85);touch-action:none}
       }
       const cp = this.car.position;
       const back = k['c'] ? 1 : -1; // C — orqaga qarash
-      this.camera.position.set(cp.x - Math.sin(this.car.rotation.y) * 10 * back, Math.max(4.5, cp.y + 4.5), cp.z - Math.cos(this.car.rotation.y) * 10 * back);
-      this.camera.lookAt(cp.x, 1.5, cp.z);
+      const sy = Math.sin(this.car.rotation.y), cy = Math.cos(this.car.rotation.y);
+      if (this.camMode === 1) {
+        // kapot kamerasi
+        this.camera.position.set(cp.x - sy * 0.5, 1.6, cp.z - cy * 0.5);
+        this.camera.lookAt(cp.x + sy * 20 * back, 1.2, cp.z + cy * 20 * back);
+      } else if (this.camMode === 2) {
+        // tepa kamerasi
+        this.camera.position.set(cp.x, 60, cp.z + 8);
+        this.camera.lookAt(cp.x, 0, cp.z);
+      } else {
+        this.camera.position.set(cp.x - sy * 10 * back, Math.max(4.5, cp.y + 4.5), cp.z - cy * 10 * back);
+        this.camera.lookAt(cp.x, 1.5, cp.z);
+      }
       this.pos.set(cp.x, 1.7, cp.z);
     }
     this.pos.x = Math.max(-4000, Math.min(4000, this.pos.x));
