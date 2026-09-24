@@ -42,10 +42,15 @@ export function drawMinimap(map, player, ctx) {
   }
   c.fillStyle = '#3f8fbf';
   c.fillRect(80, 20, 10, 130); // kanal sxematik
-  // o'yinchi
+  // o'yinchi (yo'nalish strelkasi)
   const [px, pz] = dot(Math.max(-4000, Math.min(4000, player.pos.x)), Math.max(-4000, Math.min(4000, player.pos.z)));
+  const yaw = player.mode === 'drive' && player.car ? player.car.rotation.y : player.yaw;
+  c.save();
+  c.translate(px, pz);
+  c.rotate(Math.atan2(-Math.sin(yaw), Math.cos(yaw)));
   c.fillStyle = '#22ff44';
-  c.beginPath(); c.arc(px, pz, 4, 0, 7); c.fill();
+  c.beginPath(); c.moveTo(0, -6); c.lineTo(4, 5); c.lineTo(-4, 5); c.closePath(); c.fill();
+  c.restore();
 }
 
 export function updateStat(player, fps) {
