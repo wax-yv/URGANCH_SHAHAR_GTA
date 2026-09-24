@@ -34,7 +34,8 @@ export function drawMinimap(map, player, ctx) {
 
 export function updateStat(player, fps) {
   const m = document.getElementById('mode');
-  if (m) m.textContent = player.mode === 'walk' ? 'PIYODA' : ('MASHINA: ' + (player.car?.userData.type.name || ''));
+  const spd = player.mode === 'drive' ? Math.abs(Math.round(player.speed * 3.6)) : 0;
+  if (m) m.textContent = player.mode === 'walk' ? 'PIYODA' : (`MASHINA: ${(player.car?.userData.type.name || '')} ${spd} km/s`);
   const s = document.getElementById('stat');
-  if (s) s.textContent = `FPS ${fps} | mashinalar ${player.cars?.length ?? 0}`;
+  if (s) s.textContent = `FPS ${fps} | mashinalar ${player.cars?.length ?? 0} | bot ${window.__bots ?? 15}`;
 }
