@@ -67,12 +67,6 @@ export function makeGameCar(type) {
     const inner = src.clone(true);
     fitModel(inner, type);
     g.add(inner);
-    // rang variatsiyasi: birinchi material klon
-    inner.traverse(o => {
-      if (o.isMesh && o.material && o.material.color && !o.userData._tinted) {
-        o.userData._tinted = true;
-      }
-    });
   } else {
     const fb = makeCar(type);
     g.add(fb);
