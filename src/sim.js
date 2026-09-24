@@ -78,6 +78,12 @@ export class Sim {
     for (const n of this.npcs) {
       const u = n.userData; u.t -= dt;
       if (u.t <= 0) { u.t = 3 + Math.random() * 4; u.a = Math.random() * Math.PI * 2; }
+      // mashina yaqinlashsa — qochish
+      const pc = this.player?.car;
+      if (pc && Math.abs(this.player.speed) > 6) {
+        const dx = n.position.x - pc.position.x, dz = n.position.z - pc.position.z;
+        if (dx * dx + dz * dz < 7 * 7) { u.a = Math.atan2(dx, dz); u.t = 1.2; }
+      }
       n.position.x += Math.sin(u.a) * 1.4 * dt;
       n.position.z += Math.cos(u.a) * 1.4 * dt;
       n.rotation.y = u.a;
