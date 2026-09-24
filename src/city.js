@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { toXZ, bHeight, roadWidth, citySize } from './geo.js';
-import { makeTrafficLight, makeTree, setLight } from './models.js';
+import { makeTrafficLight, setLight } from './models.js';
 
 export function buildGround(scene) {
   const { w, h } = citySize();
@@ -192,12 +192,24 @@ export function buildTile(group, tile, ctx) {
     }
   }
   addMerged(watGeos, 0x3f8fbf);
+  const treePos = [];
   for (let i = 0; i < Math.min(routes.length * 4, 60); i++) {
     const rt = routes[i % Math.max(routes.length, 1)]; if (!rt) break;
     const p = rt[Math.floor(Math.random() * rt.length)];
-    const t = makeTree();
-    t.position.set(p.x + 9 + Math.random() * 6, 0, p.z + 9);
-    group.add(t);
+    treePos.push([p.x + 9 + Math.random() * 6, p.z + 9]);
+  }
+  if (treePos.length) {
+    const td = new THREE.Object3D();
+    const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.15, 0.2, 1.6, 6),
+      new THREE.MeshLambertMaterial({ color: 0x6b4a2b }), treePos.length);
+    const crown = new THREE.InstancedMesh(new THREE.SphereGeometry(1.2, 8, 8),
+      new THREE.MeshLambertMaterial({ color: 0x2f7d3a }), treePos.length);
+    treePos.forEach(([x, z], i) => {
+      td.position.set(x, 0.8, z); td.updateMatrix(); trunk.setMatrixAt(i, td.matrix);
+      td.position.set(x, 2.4, z); td.updateMatrix(); crown.setMatrixAt(i, td.matrix);
+    });
+    crown.castShadow = true;
+    group.add(trunk, crown);
   }
   // ko'cha chiroqlari (tun uchun emissiv)
   const lampHeads = [], lampPoles = [];
