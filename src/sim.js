@@ -18,11 +18,24 @@ export class Sim {
       const t = CAR_TYPES[i % 7];
       const c = makeCar(t);
       const rt = routes[i % routes.length];
-      const idx = Math.floor(Math.random() * rt.length);
-      c.position.copy(rt[idx]); c.position.y = 0;
+      // yoy-uzunlik jadvali — tekis tezlik uchun
+      const cum = [0];
+      for (let k = 1; k < rt.length; k++) cum.push(cum[k - 1] + rt[k].distanceTo(rt[k - 1]));
+      const total = cum[cum.length - 1] || 1;
+      const d0 = Math.random() * total;
+      const pos = this.along(rt, cum, d0);
+      c.position.set(pos.x, 0, pos.z);
       this.scene.add(c);
-      this.bots.push({ mesh: c, route: rt, i: idx, v: 7 + Math.random() * 4, wait: 0 });
+      this.bots.push({ mesh: c, route: rt, cum, total, d: d0, v: 7 + Math.random() * 4, wait: 0 });
     }
+  }
+  along(rt, cum, d) {
+    d = ((d % cum[cum.length - 1]) + cum[cum.length - 1]) % cum[cum.length - 1];
+    let lo = 0, hi = cum.length - 1;
+    while (lo < hi - 1) { const m = (lo + hi) >> 1; if (cum[m] <= d) lo = m; else hi = m; }
+    const seg = (cum[hi] - cum[lo]) || 1;
+    const t = (d - cum[lo]) / seg;
+    return new THREE.Vector3().lerpVectors(rt[lo], rt[hi], t);
   }
   spawnNpcs() {
     const cols = [0x3a6fd8, 0xd83a6f, 0x3ad86f, 0xd8a53a, 0x7a3ad8];
@@ -73,7 +86,7 @@ export class Sim {
           b.wait = 0.6;
         }
       }
-      const next = b.route[(b.i + 1) % b.route.length];
+      const next = this.along(b.route, b.cum, b.d + 12);
       if ((this._st === 'red' || this._st === 'yellow') && this.nearRedLight(next)) {
         b.wait = 0.4; continue; // svetoforda to'xtash
       }
@@ -83,12 +96,12 @@ export class Sim {
         const dx = pp.x - b.mesh.position.x, dz = pp.z - b.mesh.position.z;
         if (dx * dx + dz * dz < 8 * 8) { b.wait = 0.5; continue; }
       }
-      b.i = (b.i + 1) % b.route.length;
-      const p = b.route[b.i];
+      b.d = (b.d + b.v * dt) % b.total;
+      const p = this.along(b.route, b.cum, b.d);
       const prev = b.mesh.position;
       const dx = p.x - prev.x, dz = p.z - prev.z;
       b.mesh.position.set(p.x, 0, p.z);
-      if (dx * dx + dz * dz > 0.01) b.mesh.rotation.y = Math.atan2(-dx, -dz);
+      if (dx * dx + dz * dz > 0.0001) b.mesh.rotation.y = Math.atan2(-dx, -dz);
     }
     for (const n of this.npcs) {
       const u = n.userData; u.t -= dt;
