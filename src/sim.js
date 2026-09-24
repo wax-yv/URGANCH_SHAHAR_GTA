@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CAR_TYPES } from './config.js';
 import { makeCar, makePerson, setLight, setBrake } from './models.js';
+import { makeGameCar } from './garage.js';
 
 export class Sim {
   constructor(scene, ctx, player = null) {
@@ -16,7 +17,7 @@ export class Sim {
     if (!routes.length) return;
     for (let i = 0; i < 15; i++) {
       const t = CAR_TYPES[i % 7];
-      const c = makeCar(t);
+      const c = makeGameCar(t);
       const rt = routes[i % routes.length];
       // yoy-uzunlik jadvali — tekis tezlik uchun
       const cum = [0];

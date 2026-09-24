@@ -7,6 +7,7 @@ import { Sim } from './sim.js';
 import { Labels } from './labels.js';
 import { initUI, drawMinimap, updateStat, nearestStreet } from './ui.js';
 import { toggleHead } from './models.js';
+import { preloadGarage } from './garage.js';
 
 let renderer;
 try {
@@ -207,6 +208,11 @@ addEventListener('keydown', e => {
 
 (async () => {
   const n = await loadTiles();
+  const msg = document.getElementById('loadmsg');
+  if (msg) msg.textContent = 'Mashinalar yuklanmoqda...';
+  try {
+    await preloadGarage((d, t) => { if (msg) msg.textContent = `Mashinalar ${d}/${t}...`; });
+  } catch { /* fallback procedural */ }
   const ov = document.getElementById('load');
   if (ov) ov.remove();
   player.spawnCars(scene, carSpots());

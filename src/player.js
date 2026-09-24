@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CAR_TYPES } from './config.js';
 import { makeCar, setBrake, toggleHead } from './models.js';
+import { makeGameCar } from './garage.js';
 
 export class Player {
   constructor(scene, camera) {
@@ -94,7 +95,7 @@ background:rgba(255,215,95,.85);touch-action:none}
     const defs = CAR_TYPES;
     spots.slice(0, 40).forEach((p, i) => {
       const t = defs[i % defs.length];
-      const c = makeCar(t);
+      const c = makeGameCar(t);
       c.position.set(p.x, 0, p.z);
       c.rotation.y = (i % 4) * Math.PI / 2;
       scene.add(c); this.cars.push(c);
