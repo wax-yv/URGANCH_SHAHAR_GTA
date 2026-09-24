@@ -161,7 +161,7 @@ addEventListener('mouseup', e => {
   const ov = document.getElementById('load');
   if (ov) ov.remove();
   player.spawnCars(scene, carSpots());
-  sim = new Sim(scene, ctx);
+  sim = new Sim(scene, ctx, player);
   labels.rebuild(ctx.named);
   const el = document.getElementById('bname');
   if (el) el.textContent = `Yuklandi: ${ctx.named.length} nomli bino, ${ctx.routes.length} trafik route | E — mashinaga o'tish`;

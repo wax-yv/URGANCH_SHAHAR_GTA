@@ -3,8 +3,8 @@ import { CAR_TYPES } from './config.js';
 import { makeCar, makePerson, setLight } from './models.js';
 
 export class Sim {
-  constructor(scene, ctx) {
-    this.scene = scene; this.ctx = ctx;
+  constructor(scene, ctx, player = null) {
+    this.scene = scene; this.ctx = ctx; this.player = player;
     this.bots = []; this.npcs = [];
     this.lightT = 0; this._st = 'green';
     this.spawnBots();
@@ -54,6 +54,12 @@ export class Sim {
       const next = b.route[(b.i + 1) % b.route.length];
       if ((this._st === 'red' || this._st === 'yellow') && this.nearRedLight(next)) {
         b.wait = 0.4; continue; // svetoforda to'xtash
+      }
+      // o'yinchi mashinasi oldinda bo'lsa — to'xtash
+      if (this.player?.car) {
+        const pp = this.player.car.position;
+        const dx = pp.x - b.mesh.position.x, dz = pp.z - b.mesh.position.z;
+        if (dx * dx + dz * dz < 8 * 8) { b.wait = 0.5; continue; }
       }
       b.i = (b.i + 1) % b.route.length;
       const p = b.route[b.i];
