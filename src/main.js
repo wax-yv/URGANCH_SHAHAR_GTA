@@ -25,13 +25,13 @@ document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87a5c4);
-scene.fog = new THREE.Fog(0x87a5c4, 400, 1600);
+scene.fog = new THREE.Fog(0x87a5c4, 700, 2200);
 const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.5, 3000);
 camera.position.set(0, 120, 200);
 
-const hemi = new THREE.HemisphereLight(0xbfd6ff, 0x8a7f6a, 0.9);
+const hemi = new THREE.HemisphereLight(0xbfd6ff, 0x7a6f5e, 0.65);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+const sun = new THREE.DirectionalLight(0xfff2dd, 1.25);
 sun.position.set(120, 180, 60);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024); // start 1024 — Avto kerak bo'lsa 2048 qiladi
@@ -199,8 +199,8 @@ addEventListener('keydown', e => {
     scene.userData.day = day;
     scene.background.set(day ? 0x87a5c4 : 0x0a1020);
     scene.fog.color.set(day ? 0x87a5c4 : 0x0a1020);
-    sun.intensity = day ? 1.6 : 0.12;
-    hemi.intensity = day ? 0.9 : 0.15;
+    sun.intensity = day ? 1.25 : 0.12;
+    hemi.intensity = day ? 0.65 : 0.15;
     if (player.car) {
       const L = player.car.userData.lights;
       if (L && L.on !== !day) toggleHead(player.car);

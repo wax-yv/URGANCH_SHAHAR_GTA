@@ -15,14 +15,14 @@ export function buildGround(scene) {
   const { w, h } = citySize();
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(w + 600, h + 600),
-    new THREE.MeshLambertMaterial({ color: 0x8e9a7d })
+    new THREE.MeshLambertMaterial({ color: 0x7d8a63 })
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
   const city = new THREE.Mesh(
     new THREE.PlaneGeometry(w, h),
-    new THREE.MeshLambertMaterial({ color: 0x939a88 })
+    new THREE.MeshLambertMaterial({ color: 0x8a8570 })
   );
   city.rotation.x = -Math.PI / 2; city.position.y = 0.02; city.receiveShadow = true;
   scene.add(city);
@@ -146,7 +146,7 @@ export function buildTile(group, tile, ctx) {
     const hw = (w.tags || {}).highway || '';
     pushStrip(sideGeos, pts, wd + 3, 0.04);
     pushStrip(asfGeos, pts, wd, 0.06);
-    if (wd >= 7) {
+    if (wd >= 5) {
       for (let i = 0; i < pts.length - 1; i++) {
         const a = pts[i], b = pts[i + 1];
         const dx = b[0] - a[0], dz = b[1] - a[1];
@@ -191,9 +191,9 @@ export function buildTile(group, tile, ctx) {
     m.receiveShadow = true;
     group.add(m);
   };
-  addMerged(sideGeos, 0xb9b3a6);
-  addMerged(asfGeos, 0x3c3f45);
-  addMerged(dashGeos, 0xf2f2f2, true);
+  addMerged(sideGeos, 0xcac2b2);
+  addMerged(asfGeos, 0x2e3138);
+  addMerged(dashGeos, 0xf5f5f5, true);
 
   const watGeos = [];
   for (const f of water) {
