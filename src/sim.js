@@ -9,6 +9,7 @@ export class Sim {
     this.lightT = 0; this._st = 'green';
     this.spawnBots();
     this.spawnNpcs();
+    window.__bots = this.bots.length;
   }
   spawnBots() {
     const routes = this.ctx.routes.filter(r => r.length > 5).slice(0, 12);
