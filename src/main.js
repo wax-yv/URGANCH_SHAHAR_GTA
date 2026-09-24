@@ -95,7 +95,7 @@ async function loadTiles() {
 }
 
 // to'qnashuv gridi: 100m katakchalar (11k+ bino uchun)
-let solidGrid = null;
+let solidGrid = new Map();
 function buildSolidGrid() {
   solidGrid = new Map();
   for (const s of ctx.solids) {
