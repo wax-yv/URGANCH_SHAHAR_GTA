@@ -4,10 +4,10 @@ Urganch 7.2x7.6 km GTA-demo — Vite + Three.js. Faqat ochiq OSM data.
 `41.5225,60.5848,41.5879,60.6758` | 4x4 tile streaming | 60fps nishon.
 
 ## Boshqaruv (desktop)
-- WASD — piyoda yurish / mashinada gaz-tormoz-rul
+- WASD — piyoda yurish / mashinada gaz-tormoz-rul, strelka — kamera
 - Sichqoncha — kamera (klik bilan lock)
 - E yoki klik — yaqin mashinaga o'tirish/tushish
-- P — parkovka, L — fara
+- P — parkovka, L — fara, Space — ruchnoy tormoz, C — orqa kamera, H — foto rejim, L — fara
 - Bino klik — nomi (OSM `name` bo'lsa)
 
 ## Mashinalar
