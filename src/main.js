@@ -91,17 +91,32 @@ async function loadTiles() {
   return ok;
 }
 
-// to'qnashuv: bino radiusidan itarish
-function collide(p, isCar, carR = 2) {
-  const px = p.x, pz = p.z;
+// to'qnashuv gridi: 100m katakchalar (11k+ bino uchun)
+let solidGrid = null;
+function buildSolidGrid() {
+  solidGrid = new Map();
   for (const s of ctx.solids) {
-    const dx = px - s.x, dz = pz - s.z;
-    const rr = s.r + (isCar ? carR : 0.6);
-    const d2 = dx * dx + dz * dz;
-    if (d2 < rr * rr && d2 > 0.001) {
-      const d = Math.sqrt(d2);
-      p.x = s.x + (dx / d) * rr;
-      p.z = s.z + (dz / d) * rr;
+    const k = Math.floor(s.x / 100) + ':' + Math.floor(s.z / 100);
+    if (!solidGrid.has(k)) solidGrid.set(k, []);
+    solidGrid.get(k).push(s);
+  }
+}
+function collide(p, isCar, carR = 2) {
+  const cx = Math.floor(p.x / 100), cz = Math.floor(p.z / 100);
+  for (let ix = cx - 1; ix <= cx + 1; ix++) {
+    for (let iz = cz - 1; iz <= cz + 1; iz++) {
+      const cell = solidGrid.get(ix + ':' + iz);
+      if (!cell) continue;
+      for (const s of cell) {
+        const dx = p.x - s.x, dz = p.z - s.z;
+        const rr = s.r + (isCar ? carR : 0.6);
+        const d2 = dx * dx + dz * dz;
+        if (d2 < rr * rr && d2 > 0.001) {
+          const d = Math.sqrt(d2);
+          p.x = s.x + (dx / d) * rr;
+          p.z = s.z + (dz / d) * rr;
+        }
+      }
     }
   }
 }
@@ -164,6 +179,7 @@ addEventListener('mouseup', e => {
   if (ov) ov.remove();
   player.spawnCars(scene, carSpots());
   player.named = ctx.named;
+  buildSolidGrid();
   sim = new Sim(scene, ctx, player);
   labels.rebuild(ctx.named);
   document.title = `READY named=${ctx.named.length} routes=${ctx.routes.length} lights=${ctx.lights.length}`;
