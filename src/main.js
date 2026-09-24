@@ -18,7 +18,7 @@ try {
   throw e;
 }
 renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setPixelRatio(1); // start O'rta — Avto yuqoriga ko'taradi
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 document.body.appendChild(renderer.domElement);
@@ -34,7 +34,7 @@ scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.6);
 sun.position.set(120, 180, 60);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(1024, 1024); // start 1024 — Avto kerak bo'lsa 2048 qiladi
 Object.assign(sun.shadow.camera, { left: -150, right: 150, top: 150, bottom: -150, far: 700 });
 scene.add(sun, sun.target);
 scene.userData.day = true;
@@ -161,7 +161,7 @@ function autoQuality(dt) {
   if (fps < 28 && qLevel < 2) qLevel++;
   else if (fps > 55 && qLevel > 0) qLevel--;
   else return;
-  if (qLevel === 0) { renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.shadowMap.enabled = true; sun.castShadow = true; }
+  if (qLevel === 0) { renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.shadowMap.enabled = true; sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
   if (qLevel === 1) { renderer.setPixelRatio(1); sun.shadow.mapSize.set(1024, 1024); sun.shadow.map?.dispose(); sun.shadow.map = null; }
   if (qLevel === 2) { renderer.shadowMap.enabled = false; sun.castShadow = false; }
 }

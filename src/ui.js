@@ -33,7 +33,8 @@ export function initUI(ctx, player) {
 }
 
 export const Quality = {
-  mode: localStorage.getItem('urganch_q') || 'auto',
+  mode: localStorage.getItem('urganch_q') ||
+    (((navigator.hardwareConcurrency || 8) <= 4) ? 'med' : 'auto'),
   sound: localStorage.getItem('urganch_s') !== 'off',
 };
 
